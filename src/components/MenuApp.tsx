@@ -1,7 +1,7 @@
 'use client';
 import Link from 'next/link';
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
-import { MENU, type Item } from '@/data/menu';
+import { BESTSELLERS, MENU, type Item } from '@/data/menu';
 import { getLenis } from '@/lib/lenis';
 import { cartServerSnapshot, cartSnapshot, parseCart, subscribeCart, writeCart, type Cart } from '@/lib/cart';
 import { DELIVERY, SHOP, deliveryQuote, hasModePrice, isOpenNow, rupee, unitPrice, type Mode } from '@/lib/pricing';
@@ -52,6 +52,15 @@ function DishImg({ item }: { item: Item }) {
       <img src={`/images/menu/${item.img}.jpg`} alt={item.name} loading="lazy" onError={() => setFailed(true)} />
     </div>
   );
+}
+
+/** Small round-cornered dish picture for cart rows; a lettered tile when there is no photo. */
+function Thumb({ item }: { item: Item }) {
+  const [failed, setFailed] = useState(false);
+  if (item.img && !failed) {
+    return <img className="cl-thumb" src={`/images/menu/${item.img}.jpg`} alt="" loading="lazy" onError={() => setFailed(true)} />;
+  }
+  return <span className="cl-thumb cl-thumb-ph" aria-hidden="true">{item.name.charAt(0)}</span>;
 }
 
 function Stepper({ qty, onDec, onInc }: { qty: number; onDec: () => void; onInc: () => void }) {
@@ -130,6 +139,9 @@ export default function MenuApp() {
   const canPay = open && count > 0 && !paying && (type === 'Pickup' || (!!dq && dq.deliverable));
 
   const toFree = Math.max(0, DELIVERY.freeMinOrder + 1 - sum);
+  const pct = Math.min(100, Math.round((sum / (DELIVERY.freeMinOrder + 1)) * 100));
+  /* the free-delivery meter only matters for delivery orders inside the free radius */
+  const showMeter = count > 0 && type === 'Delivery' && !(quote && quote.distanceKm >= DELIVERY.freeRadiusKm);
 
   /* ---------- active category tab ---------- */
   useEffect(() => {
@@ -392,119 +404,194 @@ export default function MenuApp() {
       <div className="cart-fab" id="cartFab" hidden={count === 0}>
         <button type="button" className="btn btn-gold" id="openCart" onClick={openDrawer}>
           <span>View Order</span><span className="cf-sep" />
-          <span aria-live="polite"><b id="cartCount">{count}</b> items</span><span className="cf-sep" />
+          <span key={count} className="cf-count" aria-live="polite"><b id="cartCount">{count}</b> {count === 1 ? 'item' : 'items'}</span><span className="cf-sep" />
           <span id="cartTotal">{rupee(sum)}</span>
         </button>
       </div>
 
-      {/* ===== CART + CHECKOUT DRAWER ===== */}
+      {/* ===== CART + CHECKOUT PANEL ===== */}
       <div className={`scrim${drawer ? ' open' : ''}`} id="scrim" onClick={closeDrawer} />
       <aside className={`cart-drawer${drawer ? ' open' : ''}`} id="cartDrawer" data-lenis-prevent role="dialog" aria-modal="true" aria-hidden={!drawer} aria-label="Your order">
         <div className="cd-head">
-          <h2>{step === 'details' ? 'Checkout' : step === 'success' ? 'Order placed' : 'Your Order'}</h2>
+          <div className="cd-title">
+            <h2>{step === 'details' ? 'Checkout' : step === 'success' ? 'Order placed' : 'Your Order'}</h2>
+            {step !== 'success' && count > 0 && <span className="cd-badge">{count} {count === 1 ? 'item' : 'items'}</span>}
+          </div>
           <button type="button" className="cd-close" aria-label="Close" onClick={closeDrawer} ref={closeRef}>×</button>
         </div>
 
+        {step !== 'success' && (
+          <ol className="cd-steps" aria-label="Checkout progress">
+            <li className={step === 'cart' ? 'now' : 'done'}><i>{step === 'cart' ? '1' : '✓'}</i>Cart</li>
+            <li className={step === 'details' ? 'now' : ''}><i>2</i>Details</li>
+            <li><i>3</i>Pay</li>
+          </ol>
+        )}
+
         {step === 'success' && paid && (
           <div className="cd-done" id="cdDone">
+            <svg className="done-check" viewBox="0 0 52 52" aria-hidden="true"><circle cx="26" cy="26" r="24" /><path d="M14 27l8 8 16-17" /></svg>
             <h3>Thank you!</h3>
-            <p>Payment of <b>{rupee(paid.total)}</b> received. Your order reference is <b>{paid.ref}</b>.</p>
-            <p>We are preparing it now. If you gave an email address, a confirmation is on its way. Questions? Call {SHOP.phone}.</p>
+            <p>We have received your payment and are preparing your order.</p>
+            <div className="ticket">
+              <div><small>Order reference</small><b>{paid.ref}</b></div>
+              <div><small>Amount paid</small><b>{rupee(paid.total)}</b></div>
+            </div>
+            <p className="cd-small">If you gave an email address, a confirmation is on its way. Questions? Call {SHOP.phone}.</p>
             <button type="button" className="btn btn-gold" onClick={startOver}>Done</button>
           </div>
         )}
 
-        {/* kept mounted (just hidden) after payment, so name / phone / address stay filled for the next order */}
-        {(
-          <div className="cd-body" id="cdBody" hidden={step === 'success'}>
-            {/* ---- step 1: review ---- */}
-            <div hidden={step !== 'cart'}>
-              <div className="cart-lines">
-                {lines.length === 0 && <p className="cart-empty">Your order is empty. Add dishes from the menu.</p>}
-                {lines.map((l) => (
-                  <div className="cl" key={l.key}>
-                    <div className="cl-main"><b>{l.it.name}</b><small>{l.m === 'jain' ? 'Jain · ' : ''}{rupee(l.price)} each</small></div>
-                    <Stepper qty={l.qty} onDec={() => change(l.key, -1)} onInc={() => change(l.key, 1)} />
-                    <span className="cl-total">{rupee(l.qty * l.price)}</span>
-                  </div>
-                ))}
-              </div>
-
-              {lines.length > 0 && addons.length > 0 && (
-                <div className="addons">
-                  <small>Add to your order</small>
-                  <div>
-                    {addons.map((it) => (
-                      <button type="button" key={it.id} className="addon-chip" onClick={() => change(keyOf(it, 'regular'), 1)}>+ {it.name} · {rupee(it.p ?? 0)}</button>
-                    ))}
-                  </div>
+        {/* the whole checkout stays mounted (just hidden after payment) so name / phone / address stay filled for the next order */}
+        <div className="cd-scroll" id="cdBody" hidden={step === 'success'}>
+          {/* ---- step 1: review ---- */}
+          <div hidden={step !== 'cart'}>
+            {lines.length === 0 ? (
+              <div className="cart-empty">
+                <b>Your order is empty</b>
+                <p>Pick something delicious from the menu — or start with a favourite:</p>
+                <div className="pop-list">
+                  {BESTSELLERS.map((id) => BY_ID[id]).filter(Boolean).slice(0, 4).map((it) => (
+                    <button type="button" key={it.id} className="pop" onClick={() => change(keyOf(it, 'regular'), 1)}>
+                      <Thumb item={it} /><span><b>{it.name}</b><small>{rupee(it.p ?? 0)}</small></span><em>+</em>
+                    </button>
+                  ))}
                 </div>
-              )}
-
-              <div className="cd-totals">
-                <div><span>Subtotal</span><b>{rupee(sum)}</b></div>
-                {lines.length > 0 && (
-                  <p className="cd-small">
-                    {toFree > 0
-                      ? `Add ₹${toFree} more to get free delivery within ${DELIVERY.freeRadiusKm} km. `
-                      : `You qualify for free delivery within ${DELIVERY.freeRadiusKm} km. `}
-                    Delivery is calculated from your address at checkout.
-                  </p>
-                )}
               </div>
+            ) : (
+              <>
+                {showMeter && (
+                  <div className={`meter${toFree === 0 ? ' done' : ''}`}>
+                    <div className="meter-text">
+                      {toFree > 0
+                        ? <>Add <b>₹{toFree}</b> more for <b>free delivery</b> <span>within {DELIVERY.freeRadiusKm} km</span></>
+                        : <><b>Free delivery unlocked</b> <span>within {DELIVERY.freeRadiusKm} km</span></>}
+                    </div>
+                    <div className="meter-bar"><i style={{ width: `${pct}%` }} /></div>
+                  </div>
+                )}
 
-              {!open && <p className="form-error">We are closed right now. Orders open daily from 8 AM to 8 PM.</p>}
-              <button type="button" className="btn btn-gold full-w" disabled={count === 0 || !open} onClick={() => { setError(''); setStep('details'); }}>
-                Continue to checkout
-              </button>
+                <div className="cart-lines">
+                  {lines.map((l, i) => (
+                    <div className="cl" key={l.key} style={{ '--i': i } as React.CSSProperties}>
+                      <Thumb item={l.it} />
+                      <div className="cl-main">
+                        <b>{l.it.name}</b>
+                        <small>{l.m === 'jain' ? 'Jain · ' : ''}{rupee(l.price)} each</small>
+                        <Stepper qty={l.qty} onDec={() => change(l.key, -1)} onInc={() => change(l.key, 1)} />
+                      </div>
+                      <span className="cl-total">{rupee(l.qty * l.price)}</span>
+                    </div>
+                  ))}
+                </div>
+
+                {addons.length > 0 && (
+                  <div className="addons">
+                    <small>Complete your meal</small>
+                    <div className="addon-row">
+                      {addons.map((it) => (
+                        <button type="button" key={it.id} className="addon-chip" onClick={() => change(keyOf(it, 'regular'), 1)} aria-label={`Add ${it.name}`}>
+                          <Thumb item={it} />
+                          <span><b>{it.name}</b><small>{rupee(it.p ?? 0)}</small></span>
+                          <em>+</em>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+
+          {/* ---- step 2: details ---- */}
+          <form id="checkoutForm" ref={formRef} className="order-form" hidden={step !== 'details'} noValidate onSubmit={(e) => { e.preventDefault(); pay(); }}>
+            <button type="button" className="cd-back" onClick={() => setStep('cart')}>← Back to your order</button>
+
+            {showMeter && type === 'Delivery' && (
+              <div className={`meter${toFree === 0 ? ' done' : ''}`}>
+                <div className="meter-text">
+                  {toFree > 0 ? <>Add <b>₹{toFree}</b> more for <b>free delivery</b> <span>within {DELIVERY.freeRadiusKm} km</span></> : <><b>Free delivery unlocked</b> <span>within {DELIVERY.freeRadiusKm} km</span></>}
+                </div>
+                <div className="meter-bar"><i style={{ width: `${pct}%` }} /></div>
+              </div>
+            )}
+
+            <h3>Contact</h3>
+            <label>Name<input name="name" type="text" autoComplete="name" required placeholder="Your name" /></label>
+            <label>Phone number<input name="phone" type="tel" inputMode="numeric" autoComplete="tel" required placeholder="10-digit mobile number" /></label>
+            <label><span>Email <em className="opt">for your receipt · optional</em></span><input name="email" type="email" autoComplete="email" placeholder="you@example.com" /></label>
+
+            <h3>How would you like it?</h3>
+            <div className="otype" role="radiogroup" aria-label="Order type">
+              <label className={`otype-card${type === 'Delivery' ? ' on' : ''}`}>
+                <input type="radio" name="type" value="Delivery" checked={type === 'Delivery'} onChange={() => setType('Delivery')} />
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s-7-6.2-7-11a7 7 0 1 1 14 0c0 4.8-7 11-7 11z" /><circle cx="12" cy="10" r="2.5" /></svg>
+                <b>Delivery</b><small>To your door</small>
+              </label>
+              <label className={`otype-card${type === 'Pickup' ? ' on' : ''}`}>
+                <input type="radio" name="type" value="Pickup" checked={type === 'Pickup'} onChange={() => setType('Pickup')} />
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 8h12l-1 12H7L6 8z" /><path d="M9 8V6a3 3 0 0 1 6 0v2" /></svg>
+                <b>Pickup</b><small>From our shop</small>
+              </label>
             </div>
 
-            {/* ---- step 2: details + pay (form stays mounted so typed text is never lost) ---- */}
-            <form ref={formRef} className="order-form" hidden={step !== 'details'} noValidate onSubmit={(e) => { e.preventDefault(); pay(); }}>
-              <button type="button" className="cd-back" onClick={() => setStep('cart')}>← Back to your order</button>
-              <h3>Your details</h3>
-              <label>Name<input name="name" type="text" autoComplete="name" required placeholder="Your name" /></label>
-              <label>Phone number<input name="phone" type="tel" inputMode="numeric" autoComplete="tel" required placeholder="10-digit mobile number" /></label>
-              <label>Email (for your receipt)<input name="email" type="email" autoComplete="email" placeholder="optional" /></label>
+            <div hidden={type !== 'Delivery'} className="addr-block">
+              <label>Delivery address
+                <textarea name="address" rows={3} placeholder="Flat / building, street, landmark, area"
+                  onChange={() => { if (quote) setQuote(null); setQuoteError(''); }} />
+              </label>
+              <div className="addr-actions">
+                <button type="button" className="btn btn-sm loc-btn" onClick={useMyLocation} disabled={quoting}>
+                  <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3" /><path d="M12 2v3M12 19v3M2 12h3M19 12h3" /><circle cx="12" cy="12" r="8" /></svg>
+                  {quoting ? 'Checking…' : 'Use my current location'}
+                </button>
+                <button type="button" className="btn btn-sm loc-btn" onClick={() => checkDelivery()} disabled={quoting}>Check delivery</button>
+              </div>
+              {quote && dq && dq.deliverable && (
+                <p className="quote-ok" role="status">
+                  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 13l4 4L19 7" /></svg>
+                  <span>{dq.message}<small>{quote.label}</small></span>
+                </p>
+              )}
+              {quoteError && <p className="form-error" role="alert">{quoteError}</p>}
+            </div>
+            {type === 'Pickup' && <p className="pickup-note">Collect your order at {SHOP.address}. We will have it ready for you.</p>}
 
-              <fieldset className="ot">
-                <legend>Order type</legend>
-                <label className="radio"><input type="radio" name="type" value="Delivery" checked={type === 'Delivery'} onChange={() => setType('Delivery')} /> <span>Delivery</span></label>
-                <label className="radio"><input type="radio" name="type" value="Pickup" checked={type === 'Pickup'} onChange={() => setType('Pickup')} /> <span>Pickup from shop</span></label>
-              </fieldset>
+            <label><span>Notes <em className="opt">optional</em></span><textarea name="notes" rows={2} placeholder="Spice level, extra pav, anything else" /></label>
+          </form>
+        </div>
 
-              <div hidden={type !== 'Delivery'} className="addr-block">
-                <label>Delivery address
-                  <textarea name="address" rows={3} placeholder="Flat / building, street, landmark, area"
-                    onChange={() => { if (quote) setQuote(null); setQuoteError(''); }} />
-                </label>
-                <div className="addr-actions">
-                  <button type="button" className="btn btn-sm loc-btn" onClick={() => checkDelivery()} disabled={quoting}>{quoting ? 'Checking…' : 'Check delivery'}</button>
-                  <button type="button" className="btn btn-sm loc-btn" onClick={useMyLocation} disabled={quoting}>Use my current location</button>
+        {/* ---- sticky footer: always-visible totals + main button ---- */}
+        {step !== 'success' && (
+          <div className="cd-foot">
+            {step === 'cart' ? (
+              <>
+                <div className="foot-rows cd-totals">
+                  <div><span>Subtotal</span><b>{rupee(sum)}</b></div>
+                  <small className="cd-small">Delivery charge is worked out from your address at checkout.</small>
                 </div>
-                {quote && dq && dq.deliverable && (
-                  <p className="quote-ok" role="status">
-                    {dq.message}
-                    <small>{quote.label}</small>
-                  </p>
-                )}
-                {quoteError && <p className="form-error" role="alert">{quoteError}</p>}
-              </div>
-
-              <label>Notes (optional)<textarea name="notes" rows={2} placeholder="Spice level, extra pav, anything else" /></label>
-
-              <div className="sum">
-                <div><span>Subtotal</span><b>{rupee(sum)}</b></div>
-                <div><span>Delivery</span><b>{type === 'Pickup' ? '—' : dq?.deliverable ? (dq.free ? 'Free' : rupee(dq.fee)) : 'Check address'}</b></div>
-                <div className="sum-total"><span>Total</span><b>{rupee(total)}</b></div>
-              </div>
-
-              {error && <p className="form-error" role="alert">{error}</p>}
-              <button type="submit" className="btn btn-gold full-w btn-pay" disabled={!canPay}>
-                {paying ? 'Opening secure payment…' : `Pay ${rupee(total)} securely`}
-              </button>
-              <p className="cd-small">Online payment only (UPI, cards, net banking, wallets) — processed securely by Razorpay. We never see your card details.</p>
-            </form>
+                {!open && <p className="form-error">We are closed right now. Orders open daily from 8 AM to 8 PM.</p>}
+                <button type="button" className="btn btn-gold full-w btn-next" disabled={count === 0 || !open} onClick={() => { setError(''); setStep('details'); }}>
+                  Continue to checkout <span className="btn-amt">{rupee(sum)}</span>
+                </button>
+              </>
+            ) : (
+              <>
+                <div className="sum">
+                  <div><span>Subtotal</span><b>{rupee(sum)}</b></div>
+                  <div><span>Delivery</span><b>{type === 'Pickup' ? '—' : dq?.deliverable ? (dq.free ? 'Free' : rupee(dq.fee)) : 'Check address'}</b></div>
+                  <div className="sum-total"><span>Total</span><b>{rupee(total)}</b></div>
+                </div>
+                {error && <p className="form-error" role="alert">{error}</p>}
+                <button type="submit" form="checkoutForm" className="btn btn-gold full-w btn-pay" disabled={!canPay}>
+                  {paying ? 'Opening secure payment…' : `Pay ${rupee(total)} securely`}
+                </button>
+                <p className="secure">
+                  <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2" /><path d="M8 11V8a4 4 0 0 1 8 0v3" /></svg>
+                  Secure online payment by Razorpay · UPI, cards, net banking, wallets
+                </p>
+              </>
+            )}
           </div>
         )}
       </aside>
