@@ -1,0 +1,159 @@
+/* ============================================================
+   MISAL HUB — PREMIUM LAYER  (loaded after style.css + theme.css)
+   Cinematic home page, shared effects, franchise model, reviews
+   Brown surfaces / orange text — same rules as theme.css
+   ============================================================ */
+
+/* ---------- Smooth-scroll (Lenis) ---------- */
+html.lenis, html.lenis body { height: auto; }
+.lenis.lenis-smooth { scroll-behavior: auto !important; }
+.lenis.lenis-smooth [data-lenis-prevent] { overscroll-behavior: contain; }
+.lenis.lenis-stopped { overflow: hidden; }
+
+/* ---------- Scroll progress ---------- */
+.scroll-progress { position: fixed; top: 0; left: 0; height: 3px; width: 100%; z-index: 3000; transform-origin: 0 50%;
+  transform: scaleX(0); background: linear-gradient(90deg, #E5750F, #FFB067); pointer-events: none; }
+
+/* ---------- Cursor spotlight on cards ---------- */
+.spot { position: relative; isolation: isolate; }
+.spot::before { content: ''; position: absolute; inset: 0; border-radius: inherit; z-index: 0; pointer-events: none; opacity: 0;
+  background: radial-gradient(420px circle at var(--mx, 50%) var(--my, 50%), rgba(255,138,31,.16), transparent 60%);
+  transition: opacity .35s; }
+.spot:hover::before { opacity: 1; }
+.spot > * { position: relative; z-index: 1; }
+.tilt { transform-style: preserve-3d; will-change: transform; }
+.magnetic { will-change: transform; }
+
+/* ---------- Hero (cinematic) ---------- */
+.hero-cine .hero-eyebrow, .hero-cine .hero-h1, .hero-cine .hero-desc, .hero-cine .hero-btns { animation: none; }
+.hero-cine { align-items: stretch; }
+.hero-cine .hero-grid { align-items: center; min-height: min(88vh, 780px); }
+.hl-mask { display: block; overflow: hidden; padding-bottom: .12em; margin-bottom: -.12em; }
+.hl { display: block; }
+.hero-cine .hero-h1 { font-size: clamp(2.6rem, 6vw, 4.8rem); line-height: 1.08; }
+.hero-cine .hero-desc { max-width: 520px; font-size: 1.02rem; color: var(--orange-lt); }
+.hero-cine .hero-btns { margin-bottom: 0; }
+.scroll-cue { position: absolute; left: 50%; bottom: 26px; z-index: 3; transform: translateX(-50%);
+  display: flex; flex-direction: column; align-items: center; gap: 8px; font-size: .68rem; letter-spacing: 3px; text-transform: uppercase; color: var(--orange-lt); }
+.scroll-cue span { width: 1px; height: 46px; background: linear-gradient(var(--orange), transparent); transform-origin: top; animation: cue 2s ease-in-out infinite; }
+@keyframes cue { 0% { transform: scaleY(0); } 50% { transform: scaleY(1); } 100% { transform: scaleY(1); opacity: 0; } }
+
+/* ---------- Marquee (text only) ---------- */
+.marquee-bar { border-block: 1px solid var(--border); }
+.marquee-track span { font-size: .8rem; letter-spacing: 2.5px; text-transform: uppercase; color: var(--orange-lt); }
+.marquee-track .dot { color: var(--orange); opacity: .8; }
+
+/* ---------- Best sellers — horizontal pinned scroller ---------- */
+.hs { background: var(--brown-800); }
+.hs-pin { padding: 90px 0 70px; overflow: hidden; }
+.hs-head { display: flex; justify-content: space-between; align-items: flex-end; gap: 24px; flex-wrap: wrap; margin-bottom: 40px; }
+.hs-head p { max-width: 440px; margin-top: 10px; }
+.hs-track { display: flex; gap: 24px; padding: 0 max(24px, calc((100vw - 1180px) / 2 + 24px)); overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; }
+.hs-track::-webkit-scrollbar { display: none; }
+.hs-track.is-pinned { overflow: visible; scroll-snap-type: none; width: max-content; }
+.hs-card { flex: 0 0 clamp(270px, 26vw, 380px); scroll-snap-align: start; display: flex; flex-direction: column; text-decoration: none;
+  background: var(--brown-600); border: 1px solid var(--border); border-radius: 20px; overflow: hidden; box-shadow: var(--shadow); }
+.hs-card:hover { border-color: var(--orange); }
+.hs-media { aspect-ratio: 1 / 1; background: var(--brown-950); overflow: hidden; }
+.hs-media img { width: 100%; height: 100%; object-fit: cover; display: block; transition: transform .8s cubic-bezier(.2,.7,.2,1); }
+.hs-card:hover .hs-media img { transform: scale(1.06); }
+.hs-info { padding: 18px 20px 22px; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.hs-info h3 { font-family: 'Playfair Display', serif; font-size: 1.15rem; line-height: 1.25; }
+.hs-price { font-weight: 700; color: var(--orange); font-size: 1.05rem; white-space: nowrap; }
+.hs-order { display: block; padding: 0 20px 20px; font-size: .74rem; font-weight: 700; letter-spacing: 1.6px; text-transform: uppercase; color: var(--orange); }
+
+/* ---------- Order-online banner ---------- */
+.order-banner { padding: 100px 0; background: linear-gradient(135deg, var(--brown-950), var(--brown-700)); border-block: 1px solid var(--border); }
+.ob-grid { display: grid; grid-template-columns: 1fr 1.1fr; gap: 64px; align-items: center; }
+.ob-copy p { margin: 16px 0 28px; max-width: 460px; }
+.ob-chips { display: flex; flex-wrap: wrap; gap: 10px; }
+.oc-chip { padding: 11px 20px; border-radius: 50px; text-decoration: none; font-size: .86rem; font-weight: 600;
+  background: var(--brown-600); border: 1px solid var(--border); color: var(--orange); transition: all .28s; }
+.oc-chip:hover { background: var(--brown-500); border-color: var(--orange); transform: translateY(-3px); }
+.ob-points { display: grid; gap: 14px; margin-top: 30px; }
+.ob-points div { display: flex; gap: 14px; align-items: baseline; font-size: .9rem; }
+.ob-points b { font-family: 'Playfair Display', serif; font-size: 1.1rem; min-width: 28px; color: var(--orange); }
+
+/* ---------- Story / recipe ---------- */
+.story { padding: 110px 0; background: var(--brown-700); overflow: hidden; }
+.story-grid { display: grid; grid-template-columns: 1fr 1.05fr; gap: 80px; align-items: center; }
+.story-photos { position: relative; height: 560px; }
+.story-photos img { position: absolute; object-fit: cover; border-radius: 22px; border: 1px solid var(--border); box-shadow: var(--shadow-lg); }
+.sp1 { width: 62%; aspect-ratio: 1; left: 0; top: 0; }
+.sp2 { width: 52%; aspect-ratio: 1; right: 0; top: 24%; }
+.sp3 { width: 46%; aspect-ratio: 1; left: 12%; bottom: 0; }
+.story-copy p { margin-bottom: 14px; font-size: .96rem; line-height: 1.8; }
+.story-feats { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 26px 0 30px; }
+.story-feats div { padding: 14px 16px; border-radius: 12px; background: var(--brown-600); border: 1px solid var(--border); }
+.story-feats strong { display: block; font-size: .86rem; color: var(--orange); }
+.story-feats small { font-size: .74rem; }
+
+/* ---------- Franchise teaser + model ---------- */
+.fr-teaser { padding: 110px 0; background: var(--brown-800); }
+.frt-grid { display: grid; grid-template-columns: 1.1fr 1fr; gap: 64px; align-items: center; }
+.frt-copy p { margin: 16px 0 26px; max-width: 480px; }
+.frt-card, .model-block { border-radius: 22px; border: 1px solid var(--border); background: var(--brown-600); }
+.frt-card { padding: 34px; text-align: center; }
+.frt-card img { width: 120px; height: 120px; border-radius: 50%; object-fit: cover; border: 2px solid var(--orange); margin-bottom: 18px; }
+.frt-card h3 { font-family: 'Playfair Display', serif; font-size: 1.4rem; margin-bottom: 8px; }
+.model-section { padding: 90px 0; background: var(--brown-700); }
+.model-block { display: grid; grid-template-columns: 1fr 1.1fr; overflow: hidden; }
+.model-visual { display: flex; align-items: center; justify-content: center; padding: 48px; background: linear-gradient(160deg, var(--brown-500), var(--brown-950)); }
+.model-visual img { width: min(240px, 60%); aspect-ratio: 1; border-radius: 50%; object-fit: cover; border: 3px solid var(--orange); box-shadow: 0 20px 60px rgba(0,0,0,.5); }
+.model-copy { padding: 48px 44px; }
+.model-tag { display: inline-block; font-size: .72rem; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; padding: 5px 14px; border-radius: 50px; border: 1px solid var(--orange); margin-bottom: 16px; }
+.model-copy h3 { font-family: 'Playfair Display', serif; font-size: 1.9rem; margin-bottom: 6px; }
+.model-copy h4 { font-size: 1rem; font-weight: 600; margin-bottom: 18px; }
+.model-copy p { font-size: .93rem; line-height: 1.8; margin-bottom: 20px; }
+.model-points { list-style: none; display: grid; gap: 10px; margin-bottom: 26px; }
+.model-points li { padding-left: 20px; position: relative; font-size: .9rem; }
+.model-points li::before { content: ''; position: absolute; left: 0; top: .62em; width: 8px; height: 8px; border-radius: 50%; background: var(--orange); }
+
+/* ---------- Google reviews ---------- */
+.reviews { padding: 100px 0; background: var(--brown-700); }
+.rv-score { display: flex; align-items: center; justify-content: center; gap: 22px; flex-wrap: wrap; margin-bottom: 44px; }
+.rv-num { font-family: 'Playfair Display', serif; font-size: 3.6rem; font-weight: 800; line-height: 1; color: var(--orange); }
+.rv-stars { display: inline-flex; gap: 3px; font-size: 1.4rem; color: var(--orange); letter-spacing: 2px; }
+.rv-stars .off { opacity: .28; }
+.rv-meta small { display: block; font-size: .8rem; margin-top: 4px; }
+.rv-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 20px; margin-bottom: 36px; }
+.rv-card { padding: 26px 24px; border-radius: 18px; background: var(--brown-600); border: 1px solid var(--border); }
+.rv-card p { font-size: .9rem; line-height: 1.7; margin: 12px 0 16px; }
+.rv-card strong { display: block; font-size: .86rem; color: var(--orange); }
+.rv-card small { font-size: .74rem; }
+.rv-cta { text-align: center; }
+
+/* ---------- Contact ---------- */
+.contact .contact-grid { grid-template-columns: repeat(3, 1fr); }
+.contact-card h4 { font-size: .8rem; letter-spacing: 2px; text-transform: uppercase; }
+.contact-card p, .contact-card a { font-size: .95rem; }
+
+/* ---------- Page-level: footer without dead socials ---------- */
+.footer-col ul a { text-decoration: none; }
+
+/* ---------- Responsive ---------- */
+@media (max-width: 1024px) {
+  .ob-grid, .story-grid, .frt-grid, .model-block { grid-template-columns: 1fr; gap: 44px; }
+  .story-photos { height: 460px; }
+  .contact .contact-grid { grid-template-columns: 1fr; }
+  .hs-pin { padding-top: 70px; }
+}
+@media (max-width: 640px) {
+  .story-photos { height: 380px; }
+  .story-feats { grid-template-columns: 1fr; }
+  .model-copy { padding: 34px 26px; }
+  .hs-card { flex-basis: 78vw; }
+  .scroll-cue { display: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .scroll-cue span, .marquee-track { animation: none; }
+}
+
+/* hero container must span the full width inside the flex hero */
+.hero-cine .hero-grid { width: 100%; }
+/* menu notes: keep dish contents visible on phones (clamped, not hidden) */
+
+/* GSAP drives transform/opacity on these — keep CSS transitions off those properties */
+.btn.magnetic, .hero-btns .btn { transition: background .28s, border-color .28s, color .28s, box-shadow .28s; }
+.hero-cine .hero-text { max-width: 780px; }
+.hero-cine .hero-h1 { font-size: clamp(2.4rem, 5vw, 4.3rem); }
