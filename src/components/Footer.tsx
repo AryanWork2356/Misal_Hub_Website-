@@ -109,7 +109,7 @@ export default function Footer({ variant }: { variant: Variant }) {
             </>
           )}
         </div>
-        <div className="footer-bottom"><p>© 2025 Misal Hub. All rights reserved.</p></div>
+        <div className="footer-bottom"><p>© 2025 Misal Hub. All rights reserved. · <Link href="/credits" style={{ textDecoration: 'underline' }}>Photo credits</Link></p></div>
       </div>
     </footer>
   );

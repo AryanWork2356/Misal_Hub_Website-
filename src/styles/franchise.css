@@ -365,6 +365,11 @@ html{scroll-behavior:smooth;}
   .pg-franchise .why-grid-5 .why-card{flex-basis:100%;}
 }
 
+/* franchise application: success state */
+.pg-franchise .apply-sent { padding: 8px 0 20px; }
+.pg-franchise .apply-sent h3 { font-family: 'Playfair Display', serif; font-size: 1.6rem; margin-bottom: 10px; }
+.pg-franchise .apply-sent p { margin-bottom: 18px; line-height: 1.7; }
+
 /* ============================================
    MISAL HUB — SHARED THEME (loaded LAST on every page)
    Brown = every surface / background

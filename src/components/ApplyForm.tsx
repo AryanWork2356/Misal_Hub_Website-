@@ -1,39 +1,53 @@
 'use client';
 import { useState } from 'react';
-import { CONFIG } from '@/data/menu';
 
-/**
- * Franchise application. There is no server, so the application is handed to the shop on WhatsApp
- * (same channel as online orders). To collect applications by e-mail or in a spreadsheet instead,
- * replace `send()` with a call to your own API route.
- */
+type State = 'idle' | 'sending' | 'sent';
+
+/** Franchise application -> POST /api/franchise -> Google Sheet row + e-mail to the shop + confirmation e-mail to the applicant. */
 export default function ApplyForm() {
+  const [state, setState] = useState<State>('idle');
   const [error, setError] = useState('');
-  const [sent, setSent] = useState(false);
 
-  function send(f: HTMLFormElement) {
-    const v = (n: string) => ((f.elements.namedItem(n) as HTMLInputElement | null)?.value || '').trim();
-    const digits = v('phone').replace(/\D/g, '').replace(/^91(?=\d{10}$)/, '');
-    if (!/^[6-9]\d{9}$/.test(digits)) { setError('Please enter a valid 10-digit mobile number.'); return false; }
+  async function submit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    const form = e.currentTarget;
+    const f = new FormData(form);
     setError('');
-    const msg =
-      '*New franchise application - Misal Hub (website)*\n' +
-      `Name: ${v('name')}\nPhone: ${digits}\nEmail: ${v('email')}\nCity: ${v('city')}\n` +
-      `Preferred call: ${v('date')} at ${v('hh')}:${v('mm')} ${v('ap')}\n` +
-      (v('message') ? `Message: ${v('message')}\n` : '');
-    window.open(`https://wa.me/${CONFIG.whatsapp}?text=${encodeURIComponent(msg)}`, '_blank', 'noopener');
-    return true;
+    setState('sending');
+    try {
+      const res = await fetch('/api/franchise', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(Object.fromEntries(f.entries())),
+      });
+      const j = await res.json().catch(() => ({}));
+      if (!res.ok || !j.ok) {
+        setError(j.error || 'Something went wrong. Please try again or call us on +91 90041 67448.');
+        setState('idle');
+        return;
+      }
+      form.reset();
+      setState('sent');
+    } catch {
+      setError('Could not reach the server. Please check your internet and try again.');
+      setState('idle');
+    }
+  }
+
+  if (state === 'sent') {
+    return (
+      <div id="franchiseForm" className="apply-sent" role="status">
+        <h3>Application received</h3>
+        <p>Thank you! Our franchise team will call you within 24 hours. A confirmation has been sent to your email.</p>
+        <button type="button" className="btn btn-gold" onClick={() => setState('idle')}>Submit another application</button>
+      </div>
+    );
   }
 
   return (
-    <form
-      id="franchiseForm"
-      onSubmit={(e) => {
-        e.preventDefault();
-        const form = e.currentTarget;
-        if (send(form)) { setSent(true); form.reset(); }
-      }}
-    >
+    <form id="franchiseForm" onSubmit={submit}>
+      {/* honeypot: hidden from people, tempting to bots */}
+      <input name="website" type="text" tabIndex={-1} autoComplete="off" aria-hidden="true" style={{ position: 'absolute', left: '-9999px', width: 1, height: 1, opacity: 0 }} />
       <div className="form-row">
         <div className="form-field">
           <label>Full Name *</label>
@@ -81,8 +95,9 @@ export default function ApplyForm() {
         <textarea name="message" rows={3} placeholder="Tell us about your location, experience or any questions..." />
       </div>
       {error && <p className="form-note" role="alert" style={{ color: '#fca5a5' }}>{error}</p>}
-      <button type="submit" className="btn btn-gold full-w submit-btn">Submit Application</button>
-      {sent && <p className="form-note">WhatsApp has opened with your application — press Send there and our team will call you within 24 hours.</p>}
+      <button type="submit" className="btn btn-gold full-w submit-btn" disabled={state === 'sending'}>
+        {state === 'sending' ? 'Sending…' : 'Submit Application'}
+      </button>
     </form>
   );
 }

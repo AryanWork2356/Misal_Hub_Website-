@@ -93,10 +93,11 @@ body.order-page .wa-float { bottom: 28px; }
 .order-form.is-disabled { opacity: .4; pointer-events: none; }
 .order-form h3 { font-family: 'Playfair Display', serif; font-size: 1.15rem; }
 .order-form label { display: grid; gap: 6px; font-size: .78rem; font-weight: 600; }
-.order-form input[type="text"], .order-form input[type="tel"], .order-form textarea {
+.order-form input[type="text"], .order-form input[type="tel"], .order-form input[type="email"], .order-form textarea {
   width: 100%; padding: 12px 14px; border-radius: 12px; border: 1px solid var(--border); background: var(--brown-700); color: var(--orange);
   font: 500 .9rem 'Poppins', sans-serif; outline: none; resize: vertical; }
 .order-form input:focus, .order-form textarea:focus { border-color: var(--orange); }
+.order-form input::placeholder, .order-form textarea::placeholder { color: var(--orange-soft); opacity: .6; }
 .ot { border: 0; display: flex; gap: 12px; flex-wrap: wrap; }
 .ot legend { font-size: .78rem; font-weight: 600; margin-bottom: 8px; }
 .radio { display: inline-flex !important; grid-auto-flow: column; align-items: center; gap: 8px !important; padding: 10px 16px; border-radius: 50px;
@@ -119,3 +120,29 @@ body.order-page .wa-float { bottom: 28px; }
   .cart-fab .btn { padding: 13px 20px; gap: 10px; font-size: .8rem; }
 }
 @media (max-width: 380px) { .item-grid { grid-template-columns: 1fr; } }
+
+/* ---------- checkout (step 2), delivery, add-ons, success ---------- */
+.om-delivery-note { margin-top: 14px; font-size: .84rem; max-width: 640px; }
+.linkish { background: none; border: 0; cursor: pointer; text-decoration: underline; color: inherit; font: inherit; }
+.cart-drawer [hidden] { display: none !important; }
+.cd-back { background: none; border: 0; cursor: pointer; text-align: left; padding: 0; font: 600 .8rem 'Poppins', sans-serif; color: var(--orange); }
+.addons { padding: 14px 0 4px; }
+.addons small { display: block; font-size: .72rem; font-weight: 700; letter-spacing: 1.2px; text-transform: uppercase; margin-bottom: 8px; }
+.addons > div { display: flex; flex-wrap: wrap; gap: 8px; }
+.addon-chip { cursor: pointer; padding: 7px 14px; border-radius: 50px; background: var(--brown-700); border: 1px solid var(--border); color: var(--orange);
+  font: 600 .76rem 'Poppins', sans-serif; transition: all .25s; }
+.addon-chip:hover { border-color: var(--orange); background: var(--brown-500); }
+.addr-block { display: grid; gap: 10px; }
+.addr-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.loc-btn { background: var(--brown-700); color: var(--orange); border: 1px solid var(--orange); }
+.loc-btn:disabled { opacity: .55; cursor: progress; }
+.quote-ok { padding: 12px 14px; border-radius: 12px; border: 1px solid var(--orange); background: var(--brown-700); font-size: .84rem; font-weight: 600; }
+.quote-ok small { display: block; margin-top: 4px; font-weight: 400; font-size: .72rem; line-height: 1.5; }
+.sum { padding: 14px 0 4px; border-top: 1px solid var(--border); display: grid; gap: 8px; }
+.sum > div { display: flex; justify-content: space-between; font-size: .9rem; }
+.sum b { color: var(--orange); }
+.sum-total { font-size: 1.1rem !important; font-weight: 700; padding-top: 8px; border-top: 1px dashed var(--border); }
+.btn-pay:disabled, .cart-drawer .btn:disabled { opacity: .5; cursor: not-allowed; transform: none; }
+.apply-sent { padding: 8px 0 20px; }
+.apply-sent h3 { font-family: 'Playfair Display', serif; font-size: 1.6rem; margin-bottom: 10px; }
+.apply-sent p { margin-bottom: 18px; line-height: 1.7; }

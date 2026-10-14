@@ -7,7 +7,7 @@ import FloatButtons from '@/components/FloatButtons';
 import HeroVideo from '@/components/HeroVideo';
 import { OpenBadge } from '@/components/OpenLive';
 import { MENU, BESTSELLERS } from '@/data/menu';
-import { GOOGLE, REVIEWS } from '@/data/reviews';
+import { getReviewsData } from '@/lib/server/reviews';
 import '@/styles/home.css';
 
 const byId = Object.fromEntries(MENU.flatMap((c) => c.items.map((i) => [i.id, i])));
@@ -22,7 +22,10 @@ function Stars({ n }: { n: number }) {
   );
 }
 
-export default function HomePage() {
+const clip = (t: string, n = 300) => (t.length > n ? `${t.slice(0, n).trimEnd()}…` : t);
+
+export default async function HomePage() {
+  const google = await getReviewsData();
   return (
     <PageShell page="home">
       <Topbar />
@@ -175,18 +178,18 @@ export default function HomePage() {
             <h2 className="section-title">What our <span className="gold">customers say</span></h2>
           </div>
           <div className="rv-score">
-            <div className="rv-num">{GOOGLE.rating}</div>
+            <div className="rv-num">{google.rating}</div>
             <div className="rv-meta">
-              <Stars n={GOOGLE.rating} />
-              <small>Average rating on Google</small>
+              <Stars n={google.rating} />
+              <small>Average rating on Google{google.count ? ` · ${google.count} reviews` : ''}</small>
             </div>
           </div>
-          {REVIEWS.length > 0 && (
+          {google.reviews.length > 0 && (
             <div className="rv-grid">
-              {REVIEWS.map((r, i) => (
+              {google.reviews.map((r, i) => (
                 <div key={i} className="rv-card spot">
                   <Stars n={r.stars || 5} />
-                  <p>{r.text}</p>
+                  <p>{clip(r.text)}</p>
                   <strong>{r.name}</strong>
                   {r.when && <small>{r.when}</small>}
                 </div>
@@ -194,7 +197,7 @@ export default function HomePage() {
             </div>
           )}
           <div className="rv-cta">
-            <a className="btn btn-gold magnetic" href={GOOGLE.url} target="_blank" rel="noopener noreferrer">Read our reviews on Google</a>
+            <a className="btn btn-gold magnetic" href={google.url} target="_blank" rel="noopener noreferrer">Read all our reviews on Google</a>
           </div>
         </div>
       </section>

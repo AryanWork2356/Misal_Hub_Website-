@@ -363,3 +363,8 @@ body{font-family:'Poppins',sans-serif;background:#fff;color:var(--text);line-hei
   .shines-grid{grid-template-columns:1fr;}
   .why-grid-5 .why-card{flex-basis:100%;}
 }
+
+/* franchise application: success state */
+.apply-sent { padding: 8px 0 20px; }
+.apply-sent h3 { font-family: 'Playfair Display', serif; font-size: 1.6rem; margin-bottom: 10px; }
+.apply-sent p { margin-bottom: 18px; line-height: 1.7; }
