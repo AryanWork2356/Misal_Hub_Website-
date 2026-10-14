@@ -1,36 +1,38 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Misal Hub — Next.js site
 
-## Getting Started
+Next.js 16 (App Router) + React 19 + GSAP/ScrollTrigger + Lenis. Looks the same as the original static site in `D:\Data\misalhub`
+(verified by pixel comparison — see "Keeping the look identical").
 
-First, run the development server:
+## Run
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+```
+npm install
+npm run dev        # http://localhost:3000
+npm run build && npm start
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Where things live
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+| Want to change…                     | Edit                                   |
+| ----------------------------------- | -------------------------------------- |
+| Menu items, prices, Jain prices     | `src/data/menu.ts`                     |
+| Order WhatsApp number, delivery note, minimum order | `CONFIG` in `src/data/menu.ts` |
+| Google reviews + review link        | `src/data/reviews.ts`                  |
+| Dish photos                         | `public/images/menu/<dish-id>.jpg` (ids are in `menu.ts`; a missing file is skipped) |
+| Page content                        | `src/app/**/page.tsx`                  |
+| Scroll / cursor effects             | `src/components/PageEffects.tsx`, `SmoothScroll.tsx` |
+| Menu & cart logic                   | `src/components/MenuApp.tsx`, `src/lib/cart.ts` |
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Keeping the look identical
 
-## Learn More
+The original CSS is kept **unchanged** in `legacy/`. `scripts/scope-css.mjs` generates `src/styles/<page>.css` from it,
+scoping each page's rules under `.pg-<page>` (and renaming `@keyframes`) so pages can't leak styles into each other.
 
-To learn more about Next.js, take a look at the following resources:
+* Edit a stylesheet in `legacy/`, then run `node scripts/scope-css.mjs`. Never edit `src/styles/*.css` by hand.
+* Add `?nofx` to any URL to turn animations off (still frame) — used for side-by-side screenshot comparison.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Notes
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+* Online orders and franchise applications are handed to the shop on **WhatsApp** (no server, no payments).
+  Real card/UPI payment or e-mail delivery needs a backend (e.g. a Next.js route handler + Razorpay / an e-mail service).
+* Effects respect `prefers-reduced-motion`.
