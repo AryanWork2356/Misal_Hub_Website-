@@ -33,7 +33,7 @@ export default async function HomePage() {
 
       {/* ===== HERO ===== */}
       <section className="hero hero-cine" id="home">
-        <HeroVideo src="/videos/misalhub-hero.mp4" />
+        <HeroVideo src="/videos/hero.mp4" poster="/videos/hero-poster.jpg" />
         <div className="hero-overlay" />
         <div className="container hero-grid">
           <div className="hero-text">
@@ -184,6 +184,11 @@ export default async function HomePage() {
               <small>Average rating on Google{google.count ? ` · ${google.count} reviews` : ''}</small>
             </div>
           </div>
+          {google.sample && (
+            <p className="rv-sample" style={{ textAlign: 'center', fontSize: '.78rem', marginBottom: 18, opacity: 0.75 }}>
+              Sample reviews shown only to preview the layout — not real customer reviews.
+            </p>
+          )}
           {google.reviews.length > 0 && (
             <div className="rv-grid">
               {google.reviews.map((r, i) => (

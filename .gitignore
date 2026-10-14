@@ -39,3 +39,6 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# huge source video ? keep locally, deploy only the web-sized public/videos/hero.mp4
+public/videos/MisalhubFinalHEroVid.mp4

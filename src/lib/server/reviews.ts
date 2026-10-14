@@ -1,6 +1,6 @@
 import 'server-only';
 import { cacheLife } from 'next/cache';
-import { GOOGLE, REVIEWS, type Review } from '@/data/reviews';
+import { GOOGLE, REVIEWS, SAMPLE_REVIEWS, SHOW_SAMPLE_REVIEWS, type Review } from '@/data/reviews';
 
 export type ReviewsData = {
   rating: number;
@@ -9,6 +9,8 @@ export type ReviewsData = {
   /** where the "Read our reviews on Google" button goes */
   url: string;
   source: 'google' | 'manual';
+  /** true = placeholder text for previewing the layout (never real customer reviews) */
+  sample: boolean;
 };
 
 type PlacesReview = {
@@ -29,7 +31,10 @@ export async function getReviewsData(): Promise<ReviewsData> {
   'use cache';
   cacheLife('hours');
 
-  const manual: ReviewsData = { rating: GOOGLE.rating, count: null, reviews: REVIEWS, url: GOOGLE.url, source: 'manual' };
+  const useSample = REVIEWS.length === 0 && SHOW_SAMPLE_REVIEWS;
+  const manual: ReviewsData = {
+    rating: GOOGLE.rating, count: null, reviews: useSample ? SAMPLE_REVIEWS : REVIEWS, url: GOOGLE.url, source: 'manual', sample: useSample,
+  };
   const key = process.env.GOOGLE_MAPS_API_KEY;
   const placeId = process.env.GOOGLE_PLACE_ID;
   if (!key || !placeId) return manual;
@@ -55,6 +60,7 @@ export async function getReviewsData(): Promise<ReviewsData> {
       reviews,
       url: j.googleMapsUri || GOOGLE.url,
       source: 'google',
+      sample: false,
     };
   } catch (e) {
     console.error('[reviews] Places API failed, using manual list:', (e as Error).message);
