@@ -1,3 +1,19 @@
 /* Page styles live in src/styles/<page>.css (generated, scoped per page wrapper).
-   Only document-level basics belong here. */
+   Only document-level basics and shared effect helpers belong here. */
 html, body { margin: 0; padding: 0; background: #2E170B; }
+
+/* ---------- word-by-word reveal (see lib/splitWords.ts) ---------- */
+.sw { display: inline-block; overflow: hidden; vertical-align: top; padding: 0 .08em .14em 0; margin: 0 -.08em -.14em 0; }
+.swi { display: inline-block; will-change: transform; }
+
+/* ---------- soft fade between pages (app/template.tsx) — opacity only, so position:fixed / pinning keep working ---------- */
+.page-enter { animation: page-in .55s ease both; }
+@keyframes page-in { from { opacity: 0; } to { opacity: 1; } }
+
+/* ---------- cursor follower (components/Cursor.tsx) ---------- */
+.cursor-ring, .cursor-dot { position: fixed; top: 0; left: 0; z-index: 5000; pointer-events: none; border-radius: 50%; opacity: 0; transition: opacity .3s; }
+.cursor-ring { width: 38px; height: 38px; margin: -19px 0 0 -19px; border: 1.5px solid #FF8A1F; transition: opacity .3s, width .25s, height .25s, margin .25s, background-color .25s; }
+.cursor-dot { width: 6px; height: 6px; margin: -3px 0 0 -3px; background: #FF8A1F; }
+.cursor-on .cursor-ring, .cursor-on .cursor-dot { opacity: 1; }
+.cursor-ring.is-hot { width: 64px; height: 64px; margin: -32px 0 0 -32px; background-color: rgba(255, 138, 31, .14); }
+@media (hover: none), (pointer: coarse), (prefers-reduced-motion: reduce) { .cursor-ring, .cursor-dot { display: none; } }

@@ -1,5 +1,6 @@
 ﻿import type { Metadata, Viewport } from 'next';
 import SmoothScroll from '@/components/SmoothScroll';
+import Cursor from '@/components/Cursor';
 import './globals.css';
 
 export const metadata: Metadata = {
@@ -25,6 +26,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body suppressHydrationWarning>
         {children}
         <SmoothScroll />
+        <Cursor />
       </body>
     </html>
   );

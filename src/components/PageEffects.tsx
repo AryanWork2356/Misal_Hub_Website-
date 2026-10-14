@@ -11,6 +11,7 @@ import { useEffect } from 'react';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { getLenis } from '@/lib/lenis';
+import { splitWords } from '@/lib/splitWords';
 
 const prefersReduced = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 const noFx = () => new URLSearchParams(window.location.search).has('nofx');
@@ -144,12 +145,57 @@ export default function PageEffects() {
           scrollTrigger: { trigger: hero, start: 'top top', end: '25% top', scrub: true } });
       }
 
-      /* section titles slide up */
+      /* section titles: words rise one by one */
       gsap.utils.toArray<HTMLElement>('.section-title').forEach((el) => {
-        if (el.closest('.reveal') || el.closest('.hero')) return;
-        gsap.from(el, { y: 44, opacity: 0, duration: 1, ease: 'power3.out',
+        if (el.closest('.hero')) return;
+        const { words, revert } = splitWords(el);
+        cleanups.push(revert);
+        gsap.from(words, { yPercent: 115, duration: 0.9, ease: 'power3.out', stagger: 0.07,
           scrollTrigger: { trigger: el, start: 'top 88%', once: true } });
       });
+
+      /* page-banner titles (About / Franchise / Menu): same word reveal on load */
+      gsap.utils.toArray<HTMLElement>('.ph-title, .fr-banner-title, .om-title').forEach((el) => {
+        const { words, revert } = splitWords(el);
+        cleanups.push(revert);
+        gsap.from(words, { yPercent: 115, duration: 1, ease: 'power3.out', stagger: 0.09, delay: 0.15 });
+      });
+
+      /* story paragraphs light up word by word as you scroll */
+      gsap.utils.toArray<HTMLElement>('.story-copy > p').forEach((el) => {
+        const { words, revert } = splitWords(el);
+        cleanups.push(revert);
+        gsap.fromTo(words, { opacity: 0.18 }, { opacity: 1, ease: 'none', stagger: 0.12,
+          scrollTrigger: { trigger: el, start: 'top 82%', end: 'bottom 48%', scrub: true } });
+      });
+
+      /* photos: curtain reveal + settle */
+      gsap.utils.toArray<HTMLElement>('.story-photos img, .founder-photo, .frt-card img, .model-visual img, .fr-banner-logo img').forEach((el) => {
+        gsap.from(el, { clipPath: 'inset(100% 0% 0% 0%)', scale: 1.18, duration: 1.3, ease: 'power3.out', clearProps: 'clipPath',
+          scrollTrigger: { trigger: el, start: 'top 88%', once: true } });
+      });
+
+      /* marquee speeds up with scroll velocity */
+      const lenis = getLenis();
+      const marquee = document.querySelector('.marquee-track');
+      if (lenis && marquee) {
+        const anim = () => marquee.getAnimations()[0];
+        let rate = 1;
+        const unsub = lenis.on('scroll', ({ velocity }: { velocity: number }) => {
+          const a = anim();
+          if (!a) return;
+          const target = 1 + Math.min(Math.abs(velocity) * 0.35, 6);
+          rate += (target - rate) * 0.12;
+          a.playbackRate = rate;
+        });
+        const settle = setInterval(() => {
+          const a = anim();
+          if (!a) return;
+          rate += (1 - rate) * 0.08;
+          a.playbackRate = rate;
+        }, 60);
+        cleanups.push(() => { unsub(); clearInterval(settle); const a = anim(); if (a) a.playbackRate = 1; });
+      }
 
       /* parallax layers */
       gsap.utils.toArray<HTMLElement>('[data-parallax]').forEach((el) => {
@@ -175,7 +221,9 @@ export default function PageEffects() {
           track.classList.add('is-pinned');
           const dist = () => Math.max(0, track.scrollWidth - window.innerWidth + 48);
           gsap.to(track, { x: () => -dist(), ease: 'none',
-            scrollTrigger: { trigger: pin, start: 'top top', end: () => `+=${dist()}`, pin: true, scrub: 0.8, anticipatePin: 1, invalidateOnRefresh: true } });
+            scrollTrigger: { trigger: pin, start: 'top top', end: () => `+=${dist()}`, pin: true, scrub: 0.8, anticipatePin: 1, invalidateOnRefresh: true,
+              // measured first, so every trigger further down the page includes this pin's extra scroll distance
+              refreshPriority: 1 } });
           return () => track.classList.remove('is-pinned');
         });
       }
