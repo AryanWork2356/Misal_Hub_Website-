@@ -1329,3 +1329,20 @@ html.lenis, html.lenis body { height: auto; }
 /* the site-wide "text on dark bands is light orange" rule is more specific than .deliver-pill — win it explicitly */
 .pg-home .navbar .deliver-pill, .pg-home .navbar .deliver-pill.is-cart { color: #2A1206; }
 .pg-home .navbar .deliver-pill i { background: #2A1206; }
+
+/* =====================================================================
+   OPEN / CLOSED DOT on the Deliver Now button (laptop) and pill (phone)
+   green + glowing while open, red while closed (shop hours, India time)
+   ===================================================================== */
+.pg-home .nav-links .deliver-btn i, .pg-home .navbar .deliver-pill i { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
+.pg-home .nav-links .deliver-btn.s-open i, .pg-home .navbar .deliver-pill.s-open i {
+  background: #16a34a; animation: home-dotGreen 1.8s ease-in-out infinite;
+  box-shadow: 0 0 0 2px #fff, 0 0 8px 2px rgba(34,197,94,.8);
+}
+.pg-home .nav-links .deliver-btn.s-closed i, .pg-home .navbar .deliver-pill.s-closed i {
+  background: #dc2626; animation: home-dotRed 1.8s ease-in-out infinite;
+  box-shadow: 0 0 0 2px #fff, 0 0 8px 2px rgba(239,68,68,.8);
+}
+@keyframes home-dotGreen { 0%, 100% { box-shadow: 0 0 0 2px #fff, 0 0 5px 1px rgba(34,197,94,.55); } 50% { box-shadow: 0 0 0 2px #fff, 0 0 15px 5px rgba(34,197,94,.95); } }
+@keyframes home-dotRed   { 0%, 100% { box-shadow: 0 0 0 2px #fff, 0 0 5px 1px rgba(239,68,68,.55); } 50% { box-shadow: 0 0 0 2px #fff, 0 0 15px 5px rgba(239,68,68,.95); } }
+@media (prefers-reduced-motion: reduce) { .pg-home .nav-links .deliver-btn i, .pg-home .navbar .deliver-pill i { animation: none !important; } }

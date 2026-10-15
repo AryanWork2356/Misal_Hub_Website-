@@ -32,7 +32,7 @@ export const DELIVERY = {
   maxKm: 10,
 } as const;
 
-export const HOURS = { openHour: 8, closeHour: 20, tz: 'Asia/Kolkata' } as const;
+export { HOURS, isOpenNow } from './hours';
 
 const BY_ID = new Map<string, Item>();
 MENU.forEach((c) => c.items.forEach((i) => BY_ID.set(i.id, i)));
@@ -99,15 +99,6 @@ export function deliveryQuote(rawKm: number, subtotal: number): DeliveryQuote {
     ? `Orders above ₹${DELIVERY.freeMinOrder} get free delivery within ${DELIVERY.freeRadiusKm} km.`
     : `₹${DELIVERY.perKm} per km, minimum ₹${DELIVERY.minFee}.`;
   return { deliverable: true, distanceKm, fee, free: false, message: `${distanceKm} km — delivery ₹${fee}. ${why}` };
-}
-
-/** Open 8 AM – 8 PM India time, every day. */
-export function isOpenNow(now: Date = new Date()): boolean {
-  const parts = new Intl.DateTimeFormat('en-GB', { timeZone: HOURS.tz, hour: '2-digit', minute: '2-digit', hour12: false }).formatToParts(now);
-  const h = Number(parts.find((p) => p.type === 'hour')?.value);
-  const m = Number(parts.find((p) => p.type === 'minute')?.value);
-  const t = (h % 24) + m / 60;
-  return t >= HOURS.openHour && t < HOURS.closeHour;
 }
 
 export const rupee = (n: number) => `₹${n}`;

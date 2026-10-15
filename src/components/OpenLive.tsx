@@ -1,22 +1,18 @@
 'use client';
 import { useEffect, useState } from 'react';
+import { isOpenNow } from '@/lib/hours';
 
-/** Shop is open 8 AM – 8 PM every day. Starts as "open" on the server, corrected on the client. */
-function useIsOpen() {
+/** Shop is open 8 AM – 8 PM India time. Starts as "open" on the server, corrected on the client every 30 s. */
+export function useIsOpen() {
   const [open, setOpen] = useState(true);
   useEffect(() => {
-    const tick = () => {
-      const d = new Date();
-      const h = d.getHours() + d.getMinutes() / 60;
-      setOpen(h >= 8 && h < 20);
-    };
+    const tick = () => setOpen(isOpenNow());
     tick();
-    const t = setInterval(tick, 60000);
+    const t = setInterval(tick, 30_000);
     return () => clearInterval(t);
   }, []);
   return open;
 }
-
 export function OpenLive() {
   const open = useIsOpen();
   return (

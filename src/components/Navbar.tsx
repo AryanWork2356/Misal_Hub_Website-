@@ -1,7 +1,7 @@
 'use client';
 import Link from 'next/link';
 import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
-import { OpenLive } from './OpenLive';
+import { OpenLive, useIsOpen } from './OpenLive';
 import { getLenis } from '@/lib/lenis';
 import { cartServerSnapshot, cartSnapshot, parseCart, subscribeCart } from '@/lib/cart';
 import { SHOP } from '@/lib/pricing';
@@ -21,6 +21,8 @@ export default function Navbar({ active, home = false, applyAnchor = false }: { 
   const [open, setOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const navRef = useRef<HTMLElement>(null);
+  const isOpen = useIsOpen();
+  const state = isOpen ? 's-open' : 's-closed';   // green glow while open, red while closed
 
   const cartJson = useSyncExternalStore(subscribeCart, cartSnapshot, cartServerSnapshot);
   const cartCount = Object.values(parseCart(cartJson)).reduce((a, n) => a + (Number(n) || 0), 0);
@@ -99,12 +101,12 @@ export default function Navbar({ active, home = false, applyAnchor = false }: { 
           <li className="nav-deliver">
             {onMenuPage ? (
               cartCount > 0 && (
-                <button type="button" className="deliver-btn is-cart" onClick={openCart} aria-label={`Open your cart, ${cartCount} items`}>
+                <button type="button" className={`deliver-btn is-cart ${state}`} onClick={openCart} aria-label={`Open your cart, ${cartCount} items`}>
                   <i /> Cart · {cartCount} <span aria-hidden="true">→</span>
                 </button>
               )
             ) : (
-              <Link href="/menu" className="deliver-btn"><i /> Deliver Now <span aria-hidden="true">→</span></Link>
+              <Link href="/menu" className={`deliver-btn ${state}`} title={isOpen ? undefined : "We are closed right now — open 8 AM to 8 PM"}><i /> Deliver Now <span aria-hidden="true">→</span></Link>
             )}
           </li>
         </ul>
@@ -112,12 +114,12 @@ export default function Navbar({ active, home = false, applyAnchor = false }: { 
         {/* phones only (hidden by CSS on desktop) */}
         {onMenuPage ? (
           cartCount > 0 && (
-            <button type="button" className="deliver-pill is-cart" onClick={openCart} aria-label={`Open your cart, ${cartCount} items`}>
+            <button type="button" className={`deliver-pill is-cart ${state}`} onClick={openCart} aria-label={`Open your cart, ${cartCount} items`}>
               <i /> Cart · {cartCount}
             </button>
           )
         ) : (
-          <Link href="/menu" className="deliver-pill" onClick={close}><i /> Deliver Now</Link>
+          <Link href="/menu" className={`deliver-pill ${state}`} onClick={close}><i /> Deliver Now</Link>
         )}
         <button
           type="button"
