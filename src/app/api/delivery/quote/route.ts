@@ -2,6 +2,9 @@ import { deliveryQuote } from '@/lib/pricing';
 import { drivingKm, geocode, reverseGeocode } from '@/lib/server/geo';
 import { clientIp, cleanText, json, rateLimit } from '@/lib/server/guard';
 
+/** address search may try a few simplified queries one second apart (OpenStreetMap's rate limit) */
+export const maxDuration = 30;
+
 const num = (v: unknown) => (typeof v === 'number' && Number.isFinite(v) ? v : null);
 
 /** POST { address? | lat+lng, subtotal } -> distance, fee, resolved address. Rules live in lib/pricing.ts. */
@@ -16,6 +19,7 @@ export async function POST(req: Request) {
 
   let lat = num(body.lat), lng = num(body.lng);
   let label = '';
+  let approx = false;
   try {
     if (lat != null && lng != null) {
       if (Math.abs(lat) > 90 || Math.abs(lng) > 180) return json({ ok: false, error: 'Bad location.' }, 400);
@@ -24,12 +28,14 @@ export async function POST(req: Request) {
       const address = cleanText(body.address, 250);
       if (address.length < 8) return json({ ok: false, error: 'Please enter your full address.' }, 400);
       const g = await geocode(address);
-      if (!g) return json({ ok: false, error: 'We could not find that address. Add a landmark or area name, or use "Use my current location".' }, 404);
-      ({ lat, lng, label } = g);
+      if (!g) return json({ ok: false, error: 'We could not find that address on the map. Add the area name (for example "Vijay Park, Mira Road"), or tap "Use my current location" for an exact position.' }, 404);
+      lat = g.lat; lng = g.lng;
+      approx = g.approx;
+      label = g.approx ? g.matched : g.label; // when only the neighbourhood matched, show that instead of an unrelated place name
     }
     const { km, source } = await drivingKm({ lat: lat as number, lng: lng as number });
     const q = deliveryQuote(km, subtotal);
-    return json({ ok: true, ...q, lat, lng, label, source });
+    return json({ ok: true, ...q, lat, lng, label, source, approx });
   } catch (e) {
     console.error('[quote]', (e as Error).message);
     return json({ ok: false, error: 'Could not check delivery right now. Please try again, or choose Pickup.' }, 502);

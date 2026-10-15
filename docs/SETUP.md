@@ -76,10 +76,13 @@ Set `SHOP_LATLNG=19.2851,72.8613`. Delivery distances and fees are measured from
 
 ## Decisions to confirm
 
-* **Orders of ₹150 or less within 2.5 km** are charged the same ₹5 per km (e.g. 1.2 km → ₹6). Tell us if you would rather block small orders or make them free.
-* **Fee rounding:** distance is rounded to 0.1 km, then fee = distance × ₹5 rounded to the nearest rupee (2.6 km → ₹13).
+* **Delivery rules in force:** free up to 1.5 km (inclusive) on orders **above ₹250**; otherwise distance × ₹4 with a **₹30 minimum** (so everything up to 7.5 km pays ₹30); no delivery beyond 10 km. An order of ₹250 or less within 1.5 km therefore also pays the ₹30 minimum. Change any number in `DELIVERY` in `src/lib/pricing.ts`.
+* **Fee rounding:** distance is rounded to 0.1 km, then distance × ₹4 is rounded to the nearest rupee, then the ₹30 minimum applies.
 * **Distance is by road** (what the rider rides), not a straight line.
 * **No GST / packaging charge** is added. Prices are exactly the menu prices.
 * **Hours:** orders accepted 8 AM – 8 PM India time; outside that the checkout is blocked with a message.
 * **Franchise page** still mentions "Zomato & Swiggy onboarding" as support offered to franchisees (you asked for that earlier). Easy to remove.
 * **Dish photos** are stand-ins from Wikimedia Commons (credited at `/credits`). Replace any of them by dropping your own `public/images/menu/<dish-id>.jpg`.
+
+* **Address matching without a Google key:** if the exact address is not on OpenStreetMap, the site tries simpler versions (without flat number, building and "Opp / Near" landmarks) and then charges by the neighbourhood, clearly marked "approximate". Customers can tap "Use my current location" for an exact fee. Google's address search (step 3) is far better at this.
+* **Coordinates are trusted from the customer's phone** (GPS or the matched address). The order email shows the typed address plus a map link, so a mismatch is easy to spot; tell us if you want a stricter check.

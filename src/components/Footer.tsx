@@ -4,7 +4,7 @@ type Variant = 'home' | 'about' | 'franchise' | 'menu';
 
 const Brand = ({ text }: { text: string }) => (
   <div className="footer-brand">
-    <img src="/images/logo.jpg" alt="Misal Hub" className="footer-logo" />
+    <img src="/images/logo.png" alt="Misal Hub" className="footer-logo" />
     <p>{text}</p>
   </div>
 );

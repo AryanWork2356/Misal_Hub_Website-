@@ -8,7 +8,7 @@ import { DELIVERY, SHOP, deliveryQuote, hasModePrice, isOpenNow, rupee, unitPric
 
 type Line = { key: string; it: Item; m: Mode; qty: number; price: number };
 type Step = 'cart' | 'details' | 'success';
-type Quote = { distanceKm: number; lat: number; lng: number; label: string; address: string; deliverable: boolean; message: string };
+type Quote = { distanceKm: number; lat: number; lng: number; label: string; address: string; deliverable: boolean; message: string; approx: boolean };
 type RzpResponse = { razorpay_order_id: string; razorpay_payment_id: string; razorpay_signature: string };
 
 declare global {
@@ -141,7 +141,7 @@ export default function MenuApp() {
   const toFree = Math.max(0, DELIVERY.freeMinOrder + 1 - sum);
   const pct = Math.min(100, Math.round((sum / (DELIVERY.freeMinOrder + 1)) * 100));
   /* the free-delivery meter only matters for delivery orders inside the free radius */
-  const showMeter = count > 0 && type === 'Delivery' && !(quote && quote.distanceKm >= DELIVERY.freeRadiusKm);
+  const showMeter = count > 0 && type === 'Delivery' && !(quote && quote.distanceKm > DELIVERY.freeRadiusKm);
 
   /* ---------- active category tab ---------- */
   useEffect(() => {
@@ -230,7 +230,7 @@ export default function MenuApp() {
       if (!j.ok) { setQuote(null); setQuoteError(j.error || 'Could not check delivery.'); return; }
       const addrField = formRef.current?.elements.namedItem('address') as HTMLTextAreaElement | null;
       if (coords && addrField && !addrField.value.trim() && j.label) addrField.value = j.label;
-      setQuote({ distanceKm: j.distanceKm, lat: j.lat, lng: j.lng, label: j.label, address: addrField?.value.trim() || address, deliverable: j.deliverable, message: j.message });
+      setQuote({ distanceKm: j.distanceKm, lat: j.lat, lng: j.lng, label: j.label, address: addrField?.value.trim() || address, deliverable: j.deliverable, message: j.message, approx: !!j.approx });
       if (!j.deliverable) setQuoteError(j.message);
     } catch {
       setQuote(null); setQuoteError('Could not check delivery. Please check your internet and try again.');
@@ -343,7 +343,7 @@ export default function MenuApp() {
           </div>
           <p className="om-jain-note" hidden={mode !== 'jain'}>Jain menu: prepared without onion, garlic or root vegetables. Prices differ from the regular menu.</p>
           <p className="om-delivery-note">
-            Free delivery within {DELIVERY.freeRadiusKm} km on orders above ₹{DELIVERY.freeMinOrder}. Beyond that ₹{DELIVERY.perKm} per km, up to {DELIVERY.maxKm} km.
+            Free delivery within {DELIVERY.freeRadiusKm} km on orders above ₹{DELIVERY.freeMinOrder}. Beyond that ₹{DELIVERY.perKm} per km (minimum ₹{DELIVERY.minFee}), up to {DELIVERY.maxKm} km.
             {!open && <strong> We are closed right now — orders reopen at 8 AM.</strong>}
           </p>
         </div>
@@ -582,7 +582,7 @@ export default function MenuApp() {
               {quote && dq && dq.deliverable && (
                 <p className="quote-ok" role="status">
                   <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 13l4 4L19 7" /></svg>
-                  <span>{dq.message}<small>{quote.label}</small></span>
+                  <span>{dq.message}<small>{quote.approx ? `Approximate spot near ${quote.label}. For an exact charge, tap “Use my current location”.` : quote.label}</small></span>
                 </p>
               )}
               {quoteError && <p className="form-error" role="alert">{quoteError}</p>}

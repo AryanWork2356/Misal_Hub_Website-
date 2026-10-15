@@ -87,14 +87,26 @@ export default function Navbar({ active, home = false, applyAnchor = false }: { 
           <li><Link href="/franchise" className={cls('franchise')}>Franchise</Link></li>
         </ul>
         {home ? (
-          <a href="#home" className="nav-logo" onClick={close}><img src="/images/logo.jpg" alt="Misal Hub Logo" /></a>
+          <a href="#home" className="nav-logo" onClick={close}><img src="/images/logo.png" alt="Misal Hub Logo" /></a>
         ) : (
-          <Link href="/" className="nav-logo" onClick={close}><img src="/images/logo.jpg" alt="Misal Hub Logo" /></Link>
+          <Link href="/" className="nav-logo" onClick={close}><img src="/images/logo.png" alt="Misal Hub Logo" /></Link>
         )}
         <ul className="nav-links nav-right">
           <li><Link href="/menu" className={cls('menu')}>Menu &amp; Order</Link></li>
           <li>{contactLink()}</li>
           <li>{franchiseCta('btn-franchise')}</li>
+          {/* far-right call to action (laptops/desktops). On the Menu page it becomes the cart button once there is something in it. */}
+          <li className="nav-deliver">
+            {onMenuPage ? (
+              cartCount > 0 && (
+                <button type="button" className="deliver-btn is-cart" onClick={openCart} aria-label={`Open your cart, ${cartCount} items`}>
+                  <i /> Cart · {cartCount} <span aria-hidden="true">→</span>
+                </button>
+              )
+            ) : (
+              <Link href="/menu" className="deliver-btn"><i /> Deliver Now <span aria-hidden="true">→</span></Link>
+            )}
+          </li>
         </ul>
 
         {/* phones only (hidden by CSS on desktop) */}

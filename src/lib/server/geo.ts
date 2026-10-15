@@ -1,9 +1,12 @@
 import 'server-only';
 import { SHOP } from '@/lib/pricing';
+import { addressQueries } from '@/lib/addressQueries';
 import { env } from './env';
 
 export type LatLng = { lat: number; lng: number };
 export type Geocoded = LatLng & { label: string };
+/** pprox: only a simplified version of the address matched (flat / building / landmark dropped) — position is the neighbourhood, not the doorstep. */
+export type GeocodedAddress = Geocoded & { approx: boolean; matched: string };
 
 const shopPoint = (): LatLng => env.shopLatLng() ?? { lat: SHOP.lat, lng: SHOP.lng };
 
@@ -22,8 +25,10 @@ async function getJson(url: string, init?: RequestInit) {
   return res.json();
 }
 
-/** Address text -> coordinates. Google if a key is configured, otherwise OpenStreetMap (much weaker for Indian addresses). */
-export async function geocode(address: string): Promise<Geocoded | null> {
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+/** One search query -> coordinates. Google if a key is configured, otherwise OpenStreetMap (much weaker for Indian addresses). */
+async function geocodeOne(address: string): Promise<Geocoded | null> {
   const b = BOX();
   const key = env.googleKey();
   if (key) {
@@ -32,6 +37,7 @@ export async function geocode(address: string): Promise<Geocoded | null> {
       bounds: `${b.south},${b.west}|${b.north},${b.east}`,
     });
     const j = await getJson(url);
+    if (j.status && !['OK', 'ZERO_RESULTS'].includes(j.status)) console.error('[geocode] Google status', j.status, j.error_message || '');
     const r = j.results?.[0];
     return r ? { lat: r.geometry.location.lat, lng: r.geometry.location.lng, label: r.formatted_address } : null;
   }
@@ -44,6 +50,20 @@ export async function geocode(address: string): Promise<Geocoded | null> {
   return r ? { lat: Number(r.lat), lng: Number(r.lon), label: r.display_name } : null;
 }
 
+/**
+ * Address text -> coordinates, trying the full address first and then simpler versions of it
+ * (see lib/addressQueries.ts). OpenStreetMap allows ~1 request per second, so those retries are spaced out.
+ */
+export async function geocode(address: string): Promise<GeocodedAddress | null> {
+  const usingGoogle = !!env.googleKey();
+  const queries = addressQueries(address, usingGoogle ? 4 : 4);
+  for (let i = 0; i < queries.length; i++) {
+    if (i > 0 && !usingGoogle) await sleep(1100);
+    const g = await geocodeOne(queries[i].q);
+    if (g) return { ...g, approx: queries[i].approx, matched: queries[i].q };
+  }
+  return null;
+}
 /** Coordinates -> a readable address (for "use my location"). */
 export async function reverseGeocode(p: LatLng): Promise<string> {
   try {

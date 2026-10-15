@@ -59,7 +59,7 @@ export default function FranchisePage() {
             <a href="#apply" className="btn btn-gold">Get Franchise</a>
           </div>
           <div className="fr-banner-logo">
-            <img src="/images/logo.jpg" alt="Misal Hub logo" />
+            <img src="/images/logo-round.png" alt="Misal Hub logo" />
           </div>
         </div>
       </section>
@@ -84,7 +84,7 @@ export default function FranchisePage() {
           <div className="pitch-visual reveal">
             <div className="pv-card">
               <div className="pv-top pv-logo-block">
-                <div className="pvc-logo"><img src="/images/logo.jpg" alt="Misal Hub" /></div>
+                <div className="pvc-logo"><img src="/images/logo-round.png" alt="Misal Hub" /></div>
                 <div className="pvc-tag">Experience success with <strong>Misal Hub</strong><br />as a Franchise Partner.</div>
                 <div className="pvc-sub">Start Your Own Business Journey</div>
               </div>
@@ -132,7 +132,7 @@ export default function FranchisePage() {
             <h2 className="section-title">How you <span className="gold">partner with us</span></h2>
           </div>
           <div className="model-block reveal">
-            <div className="model-visual"><img src="/images/logo.jpg" alt="Misal Hub" /></div>
+            <div className="model-visual"><img src="/images/logo-round.png" alt="Misal Hub" /></div>
             <div className="model-copy">
               <span className="model-tag">FOFO</span>
               <h3>Franchise Owned, Franchise Operated</h3>
@@ -218,7 +218,7 @@ export default function FranchisePage() {
       <section className="apply-section" id="apply">
         <div className="apply-grid">
           <div className="apply-image apply-logo-panel">
-            <img src="/images/logo.jpg" alt="Misal Hub logo" />
+            <img src="/images/logo-round.png" alt="Misal Hub logo" />
             <p>Misal Hub<br /><span>Since 2015</span></p>
           </div>
           <div className="apply-form-wrap">

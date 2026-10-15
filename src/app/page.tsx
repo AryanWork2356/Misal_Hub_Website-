@@ -164,7 +164,7 @@ export default async function HomePage() {
             <Link href="/franchise" className="btn btn-gold magnetic">Get Franchise</Link>
           </div>
           <div className="frt-card spot tilt">
-            <img src="/images/logo.jpg" alt="Misal Hub logo" />
+            <img src="/images/logo-round.png" alt="Misal Hub logo" />
             <h3>Spicing up Mira Road since 2015</h3>
             <p>Join a brand people already trust.</p>
           </div>

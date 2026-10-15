@@ -1,35 +1,48 @@
 import { describe, expect, it } from 'vitest';
 import { createHmac } from 'node:crypto';
 import { DELIVERY, deliveryQuote, isOpenNow, priceCart } from '@/lib/pricing';
+import { addressQueries } from '@/lib/addressQueries';
 import { verifyPaymentSignature, verifyWebhookSignature } from '@/lib/server/razorpay';
 import { MENU } from '@/data/menu';
 
-describe('delivery fee — the owner\'s rules', () => {
-  it('free under 2.5 km when the order is above ₹150', () => {
-    expect(deliveryQuote(1.0, 200)).toMatchObject({ deliverable: true, fee: 0, free: true });
-    expect(deliveryQuote(2.4, 151)).toMatchObject({ fee: 0, free: true });
-    expect(deliveryQuote(0, 500)).toMatchObject({ fee: 0, free: true });
+describe('delivery fee — the owner\'s rules (free to 1.5 km above ₹250, else ₹4/km, minimum ₹30)', () => {
+  it('rules in code match what was agreed', () => {
+    expect(DELIVERY).toEqual({ freeRadiusKm: 1.5, freeMinOrder: 250, perKm: 4, minFee: 30, maxKm: 10 });
   });
 
-  it('"above ₹150" means more than 150 — exactly ₹150 is charged', () => {
-    const q = deliveryQuote(2.4, 150);
+  it('free up to 1.5 km (inclusive) when the order is above ₹250', () => {
+    expect(deliveryQuote(0.6, 300)).toMatchObject({ deliverable: true, fee: 0, free: true });
+    expect(deliveryQuote(1.5, 251)).toMatchObject({ fee: 0, free: true });
+    expect(deliveryQuote(0, 5000)).toMatchObject({ fee: 0, free: true });
+  });
+
+  it('"above ₹250" means more than 250 — exactly ₹250 pays the minimum', () => {
+    const q = deliveryQuote(1.0, 250);
     expect(q.free).toBe(false);
-    expect(q.fee).toBe(12); // 2.4 km x ₹5
+    expect(q.fee).toBe(30);
   });
 
-  it('2.5 km to 10 km: ₹5 per km — 2.6 km costs ₹13 (the owner\'s own example)', () => {
-    expect(deliveryQuote(2.6, 500)).toMatchObject({ deliverable: true, fee: 13, free: false });
-    expect(deliveryQuote(2.6, 80).fee).toBe(13);
+  it('short trips still pay the ₹30 minimum (e.g. 0.6 km x ₹4 = ₹2.4 -> ₹30)', () => {
+    expect(deliveryQuote(0.6, 120)).toMatchObject({ free: false, fee: 30 });
+    expect(deliveryQuote(2.0, 900)).toMatchObject({ free: false, fee: 30 });   // beyond 1.5 km even a big order pays
   });
 
-  it('2.5 km exactly is no longer "under 2.5" so it is charged', () => {
-    expect(deliveryQuote(2.5, 500)).toMatchObject({ free: false, fee: 13 }); // 12.5 -> 13
+  it('₹4 per km kicks in once it exceeds the minimum (7.5 km = ₹30 exactly)', () => {
+    expect(deliveryQuote(7.4, 400).fee).toBe(30);   // 29.6 -> 30
+    expect(deliveryQuote(7.5, 400).fee).toBe(30);   // 30.0
+    expect(deliveryQuote(8.0, 400).fee).toBe(32);
+    expect(deliveryQuote(9.0, 400).fee).toBe(36);
+    expect(deliveryQuote(10, 400).fee).toBe(40);
+  });
+
+  it('1.6 km is outside the free zone', () => {
+    expect(deliveryQuote(1.6, 999)).toMatchObject({ free: false, fee: 30 });
   });
 
   it('the fee uses the distance rounded to 0.1 km', () => {
-    expect(deliveryQuote(3.37, 500)).toMatchObject({ distanceKm: 3.4, fee: 17 });
-    expect(deliveryQuote(5, 500).fee).toBe(25);
-    expect(deliveryQuote(10, 500).fee).toBe(50);
+    expect(deliveryQuote(8.04, 500)).toMatchObject({ distanceKm: 8, fee: 32 });
+    expect(deliveryQuote(1.54, 500)).toMatchObject({ distanceKm: 1.5, free: true });   // rounds down into the free zone
+    expect(deliveryQuote(1.56, 500)).toMatchObject({ distanceKm: 1.6, free: false });
   });
 
   it('beyond 10 km we do not deliver', () => {
@@ -42,9 +55,41 @@ describe('delivery fee — the owner\'s rules', () => {
     expect(deliveryQuote(NaN, 200).deliverable).toBe(false);
     expect(deliveryQuote(-1, 200).deliverable).toBe(false);
   });
+});
 
-  it('rules in code match what was agreed', () => {
-    expect(DELIVERY).toEqual({ freeRadiusKm: 2.5, freeMinOrder: 150, perKm: 5, maxKm: 10 });
+describe('address simplifier — long Indian addresses the map cannot match directly', () => {
+  const full = 'A/504 , Ankur Enclave , Vijay Park , Opp Tokyo Tower , Near GN Residency .';
+
+  it('tries the full text first, then drops the flat number and landmarks', () => {
+    const q = addressQueries(full);
+    expect(q[0]).toMatchObject({ approx: false });
+    expect(q[1].q).toBe('Ankur Enclave, Vijay Park, Mira Road, Thane');
+    expect(q[1].approx).toBe(true);
+  });
+
+  it('then falls back to the neighbourhood, and finally to the landmarks', () => {
+    const qs = addressQueries(full, 6).map((x) => x.q);
+    expect(qs).toContain('Vijay Park, Mira Road, Thane');
+    expect(qs).toContain('Tokyo Tower, Mira Road, Thane');
+    expect(qs.slice(1).some((s) => /A\/504|Opp|Near/i.test(s))).toBe(false);
+  });
+
+  it('does not add local context when the customer already gave it', () => {
+    const qs = addressQueries('Flat 4, Silver Cassia, Pleasant Park Road, Mira Road East 401107').map((x) => x.q);
+    expect(qs[1]).toBe('Silver Cassia, Pleasant Park Road, Mira Road East');   // flat + pincode removed, no extra suffix
+  });
+
+  it('keeps "5th floor" style words and does not repeat a locality the customer already gave', () => {
+    const qs = addressQueries('5th Floor, Sai Heights, Station Road, Bhayander West').map((x) => x.q);
+    expect(qs.some((s) => /^5th Floor/.test(s))).toBe(true);                         // "5th Floor" is not mistaken for a flat number
+    expect(qs).toContain('Sai Heights, Station Road, Bhayander West');                // simplified version without the floor
+    expect(qs.some((s) => /Bhayander West, Bhayander|, Mira Road, Thane/.test(s))).toBe(false);  // no redundant locality added
+  });
+
+  it('is safe on junk and caps the number of searches', () => {
+    expect(addressQueries('   ')).toEqual([]);
+    expect(addressQueries('1, 2, 3, 4, 5, 6, 7, 8, 9, 10')[0].approx).toBe(false);
+    expect(addressQueries('A, B, C, D, E, F, G, H, I, J, K', 4).length).toBeLessThanOrEqual(4);
   });
 });
 

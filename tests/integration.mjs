@@ -68,14 +68,16 @@ const near = async (extra) => (await post(3200, '/api/delivery/quote', { ...NEAR
 
 try {
   /* ----- delivery quotes (distance comes from the routing service; fee rules are checked exactly in the unit tests) ----- */
-  let q = await near({ subtotal: 200 });
-  ok('quote: ~0.5 km, order ₹200 -> free delivery', q.ok && q.deliverable && q.free && q.fee === 0, `${q.distanceKm} km via ${q.source}`);
+  let q = await near({ subtotal: 300 });
+  ok('quote: ~0.5 km, order ₹300 (above ₹250) -> free delivery', q.ok && q.deliverable && q.free && q.fee === 0, `${q.distanceKm} km via ${q.source}`);
   q = await near({ subtotal: 100 });
-  ok('quote: ~0.5 km, order ₹100 -> charged ₹5/km (not free)', q.ok && !q.free && q.fee === Math.round(q.distanceKm * 5) && q.fee > 0, `fee ₹${q.fee}`);
+  ok('quote: ~0.5 km, order ₹100 -> pays the ₹30 minimum (not free)', q.ok && !q.free && q.fee === 30, `fee ₹${q.fee}`);
   q = (await post(3200, '/api/delivery/quote', { ...MID, subtotal: 500 })).json;
-  ok('quote: ~5 km -> ₹5 per km even for a big order', q.ok && q.deliverable && !q.free && q.fee === Math.round(q.distanceKm * 5) && q.distanceKm >= 4 && q.distanceKm <= 8, `${q.distanceKm} km -> ₹${q.fee}`);
+  ok('quote: ~5 km -> never free, ₹4/km with the ₹30 minimum', q.ok && q.deliverable && !q.free && q.fee === Math.max(30, Math.round(q.distanceKm * 4)) && q.distanceKm >= 4 && q.distanceKm <= 8, `${q.distanceKm} km -> ₹${q.fee}`);
   q = (await post(3200, '/api/delivery/quote', { ...FAR, subtotal: 500 })).json;
   ok('quote: ~20 km -> not deliverable', q.ok && q.deliverable === false, q.message);
+  const real = (await post(3200, '/api/delivery/quote', { address: 'A/504 , Ankur Enclave , Vijay Park , Opp Tokyo Tower , Near GN Residency .', subtotal: 300 })).json;
+  ok('quote: the long real address (flat no. + building + Opp/Near landmarks) is now found by area', real.ok && real.approx === true && /Vijay Park/i.test(real.label) && real.deliverable, JSON.stringify({ label: real.label, km: real.distanceKm, fee: real.fee, err: real.error }));
   ok('quote: junk input rejected', (await post(3200, '/api/delivery/quote', { lat: 'x', lng: 5 })).status === 400);
 
   /* ----- creating an order ----- */
@@ -86,10 +88,10 @@ try {
   ok('create: Razorpay key id (never the secret) is returned', r.json.razorpay.key === 'rzp_test_key' && !JSON.stringify(r.json).includes(SECRET));
 
   r = await post(3200, '/api/checkout/create', { items: [{ id: 'misal-pav', mode: 'regular', qty: 1 }], customer, type: 'Delivery', address: 'Flat 4, Silver Cassia, Mira Road East', ...NEAR });
-  ok('create (delivery, ₹90 near): fee added = ₹5/km', r.json.ok && r.json.totals.deliveryFee > 0 && r.json.totals.total === 90 + r.json.totals.deliveryFee && rzpOrders.at(-1).amount === (90 + r.json.totals.deliveryFee) * 100, JSON.stringify(r.json.totals));
+  ok('create (delivery, ₹90 near): pays the ₹30 minimum', r.json.ok && r.json.totals.deliveryFee === 30 && r.json.totals.total === 120 && rzpOrders.at(-1).amount === (90 + r.json.totals.deliveryFee) * 100, JSON.stringify(r.json.totals));
 
-  r = await post(3200, '/api/checkout/create', { items: [{ id: 'misal-thali', mode: 'regular', qty: 1 }], customer, type: 'Delivery', address: 'Flat 4, Silver Cassia, Mira Road East', ...NEAR });
-  ok('create (delivery, ₹170 near): FREE delivery, total ₹170', r.json.ok && r.json.totals.deliveryFee === 0 && r.json.totals.total === 170, JSON.stringify(r.json.totals));
+  r = await post(3200, '/api/checkout/create', { items: [{ id: 'misal-thali', mode: 'regular', qty: 2 }], customer, type: 'Delivery', address: 'Flat 4, Silver Cassia, Mira Road East', ...NEAR });
+  ok('create (delivery, ₹340 near): FREE delivery, total ₹340', r.json.ok && r.json.totals.deliveryFee === 0 && r.json.totals.total === 340, JSON.stringify(r.json.totals));
 
   r = await post(3200, '/api/checkout/create', { items: [{ id: 'misal-thali', mode: 'regular', qty: 1 }], customer, type: 'Delivery', address: 'Somewhere very far away 123', ...FAR });
   ok('create: address beyond 10 km refused (422), no payment order made', r.status === 422 && !r.json.ok, r.json.error);

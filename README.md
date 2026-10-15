@@ -36,7 +36,7 @@ scoping each page's rules under `.pg-<page>` (and renaming `@keyframes`) so page
 1. The cart lives in the browser (`src/lib/cart.ts`) but **prices are never trusted from it**: `/api/checkout/create` re-prices every line from `src/data/menu.ts`
    (`priceCart` in `src/lib/pricing.ts`), works out the delivery fee, and creates the Razorpay order for exactly that amount.
 2. Delivery: `/api/delivery/quote` geocodes the address (or takes GPS coordinates), asks Google Routes (fallback: OSRM) for the **road distance**, and applies the owner's rules
-   in `deliveryQuote()` — free under 2.5 km above ₹150, otherwise ₹5/km, none beyond 10 km. The same function previews the fee in the browser.
+   in `deliveryQuote()` — free up to 1.5 km on orders above ₹250, otherwise ₹4 per km with a ₹30 minimum, none beyond 10 km. The same function previews the fee in the browser.
 3. Payment: Razorpay popup → `/api/checkout/verify` checks the signature → the **Google Apps Script** (`apps-script/Code.gs`) marks the order Paid in the Sheet and e-mails the shop (and the customer, if they gave an address).
    `/api/razorpay/webhook` repeats this server-to-server as a safety net; the script ignores duplicates.
 4. Franchise applications: `/api/franchise` → same Apps Script → Sheet row + e-mails.
