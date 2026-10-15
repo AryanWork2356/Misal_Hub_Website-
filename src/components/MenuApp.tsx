@@ -55,12 +55,12 @@ function DishImg({ item }: { item: Item }) {
 }
 
 /** Small round-cornered dish picture for cart rows; a lettered tile when there is no photo. */
-function Thumb({ item }: { item: Item }) {
+function Thumb({ item, className = 'cl-thumb' }: { item: Item; className?: string }) {
   const [failed, setFailed] = useState(false);
   if (item.img && !failed) {
-    return <img className="cl-thumb" src={`/images/menu/${item.img}.jpg`} alt="" loading="lazy" onError={() => setFailed(true)} />;
+    return <img className={className} src={`/images/menu/${item.img}.jpg`} alt="" loading="lazy" onError={() => setFailed(true)} />;
   }
-  return <span className="cl-thumb cl-thumb-ph" aria-hidden="true">{item.name.charAt(0)}</span>;
+  return <span className={`${className} cl-thumb-ph`} aria-hidden="true">{item.name.charAt(0)}</span>;
 }
 
 function Stepper({ qty, onDec, onInc }: { qty: number; onDec: () => void; onInc: () => void }) {
@@ -197,6 +197,21 @@ export default function MenuApp() {
     const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setDrawer(false); };
     document.addEventListener('keydown', onKey);
     return () => document.removeEventListener('keydown', onKey);
+  }, []);
+
+  /* "Clear cart" asks for a second tap (it un-arms itself after a few seconds, or when the cart changes) */
+  const [confirmClear, setConfirmClear] = useState(false);
+  useEffect(() => {
+    if (!confirmClear) return;
+    const t = setTimeout(() => setConfirmClear(false), 3500);
+    return () => clearTimeout(t);
+  }, [confirmClear, count]);
+
+  /* the header's "Cart · N" button (components/Navbar.tsx) opens the drawer from anywhere on the page */
+  useEffect(() => {
+    const openIt = () => { setError(''); setStep((s) => (s === 'success' ? 'cart' : s)); setDrawer(true); };
+    window.addEventListener('mh:open-cart', openIt);
+    return () => window.removeEventListener('mh:open-cart', openIt);
   }, []);
 
   const field = (name: string) => (formRef.current?.elements.namedItem(name) as HTMLInputElement | null)?.value.trim() || '';
@@ -402,10 +417,16 @@ export default function MenuApp() {
 
       {/* ===== CART BAR ===== */}
       <div className="cart-fab" id="cartFab" hidden={count === 0}>
-        <button type="button" className="btn btn-gold" id="openCart" onClick={openDrawer}>
-          <span>View Order</span><span className="cf-sep" />
-          <span key={count} className="cf-count" aria-live="polite"><b id="cartCount">{count}</b> {count === 1 ? 'item' : 'items'}</span><span className="cf-sep" />
-          <span id="cartTotal">{rupee(sum)}</span>
+        <button type="button" className="fab" id="openCart" onClick={openDrawer} aria-label={`View your order, ${count} items, ${rupee(sum)}`}>
+          <span className="fab-thumbs" aria-hidden="true">
+            {lines.slice(0, 3).map((l) => <Thumb key={l.key} item={l.it} className="fab-thumb" />)}
+            {lines.length > 3 && <span className="fab-thumb fab-more">+{lines.length - 3}</span>}
+          </span>
+          <span className="fab-info">
+            <b key={count} className="cf-count" aria-live="polite"><span id="cartCount">{count}</span> {count === 1 ? 'item' : 'items'}</b>
+            <span id="cartTotal">{rupee(sum)}</span>
+          </span>
+          <span className="fab-go">View order <i aria-hidden="true">→</i></span>
         </button>
       </div>
 
@@ -460,6 +481,17 @@ export default function MenuApp() {
               </div>
             ) : (
               <>
+                <div className="cart-tools">
+                  <span>{count} {count === 1 ? 'item' : 'items'} in your order</span>
+                  <button
+                    type="button"
+                    className={`clear-btn${confirmClear ? ' sure' : ''}`}
+                    onClick={() => { if (confirmClear) { writeCart({}); setConfirmClear(false); } else setConfirmClear(true); }}
+                  >
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13M10 11v6M14 11v6" /></svg>
+                    {confirmClear ? 'Tap again to clear' : 'Clear cart'}
+                  </button>
+                </div>
                 {showMeter && (
                   <div className={`meter${toFree === 0 ? ' done' : ''}`}>
                     <div className="meter-text">

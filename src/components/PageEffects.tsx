@@ -94,6 +94,52 @@ export default function PageEffects() {
       cleanups.push(() => document.removeEventListener('pointermove', onMove));
     }
 
+    /* phones: swipe carousels get dots + a slightly bigger centre card (CSS reads --s / --o) */
+    const carousel = (el: HTMLElement) => {
+      const items = Array.from(el.children) as HTMLElement[];
+      if (items.length < 2) return () => {};
+      const dots = document.createElement('div');
+      dots.className = 'snap-dots';
+      dots.setAttribute('aria-hidden', 'true');
+      items.forEach(() => dots.appendChild(document.createElement('i')));
+      el.insertAdjacentElement('afterend', dots);
+      const update = () => {
+        const box = el.getBoundingClientRect();
+        const mid = box.left + box.width / 2;
+        let best = 0, bestD = Infinity;
+        items.forEach((it, i) => {
+          const r = it.getBoundingClientRect();
+          const d = Math.abs(r.left + r.width / 2 - mid);
+          if (d < bestD) { bestD = d; best = i; }
+          const t = Math.min(d / (box.width * 0.7), 1);
+          it.style.setProperty('--s', String(1 - 0.07 * t));
+          it.style.setProperty('--o', String(1 - 0.45 * t));
+        });
+        Array.from(dots.children).forEach((dot, i) => dot.classList.toggle('on', i === best));
+      };
+      el.addEventListener('scroll', update, { passive: true });
+      window.addEventListener('resize', update);
+      update();
+      return () => {
+        el.removeEventListener('scroll', update);
+        window.removeEventListener('resize', update);
+        dots.remove();
+        items.forEach((it) => { it.style.removeProperty('--s'); it.style.removeProperty('--o'); });
+      };
+    };
+    const carousels: Array<[string, string]> = [['.hs-track', '(max-width: 1024px)'], ['.rv-grid, .partner-grid, .why-grid, .shines-grid', '(max-width: 768px)']];
+    carousels.forEach(([sel, query]) => {
+      const mq = window.matchMedia(query);
+      let stop: Array<() => void> = [];
+      const build = () => {
+        stop.forEach((s) => s()); stop = [];
+        if (mq.matches) document.querySelectorAll<HTMLElement>(sel).forEach((el) => stop.push(carousel(el)));
+      };
+      build();
+      mq.addEventListener('change', build);
+      cleanups.push(() => { mq.removeEventListener('change', build); stop.forEach((s) => s()); });
+    });
+
     if (reduce) return () => cleanups.forEach((c) => c());
 
     const ctx = gsap.context(() => {

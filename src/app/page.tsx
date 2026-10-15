@@ -8,6 +8,7 @@ import HeroVideo from '@/components/HeroVideo';
 import { OpenBadge } from '@/components/OpenLive';
 import { MENU, BESTSELLERS } from '@/data/menu';
 import { getReviewsData } from '@/lib/server/reviews';
+import { SHOP } from '@/lib/pricing';
 import '@/styles/home.css';
 
 const byId = Object.fromEntries(MENU.flatMap((c) => c.items.map((i) => [i.id, i])));
@@ -228,6 +229,12 @@ export default async function HomePage() {
               <p>+91 90041 67448</p>
               <a href="https://wa.me/919004167448" className="btn btn-gold btn-sm" target="_blank" rel="noopener noreferrer">WhatsApp Us</a>
             </div>
+          </div>
+          {/* phones only (hidden by CSS on desktop): one-tap actions */}
+          <div className="contact-actions">
+            <a href="tel:+919004167448">Call</a>
+            <a href="https://wa.me/919004167448" target="_blank" rel="noopener noreferrer">WhatsApp</a>
+            <a href={`https://www.google.com/maps/dir/?api=1&destination=${SHOP.lat},${SHOP.lng}`} target="_blank" rel="noopener noreferrer">Directions</a>
           </div>
           <div className="map-wrap reveal">
             <iframe
