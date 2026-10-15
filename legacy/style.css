@@ -106,7 +106,7 @@ body { font-family:'Poppins',sans-serif; background:#fff; color:var(--text); lin
   box-shadow:0 3px 20px rgba(0,0,0,0.2);
   transition:all var(--t);
 }
-.navbar.scrolled { background:rgba(184,134,11,0.97); backdrop-filter:blur(12px); }
+.navbar.scrolled { background:rgba(184,134,11,0.97); }
 
 .nav-inner {
   max-width:1180px; margin:0 auto; padding:0 24px;

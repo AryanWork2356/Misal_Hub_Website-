@@ -449,3 +449,10 @@ html.lenis, html.lenis body { height: auto; }
   .wa-hint { right: 66px; bottom: 12px; }
 }
 @media (prefers-reduced-motion: reduce) { .wa-fab, .wa-ring, .wa-dot { animation: none !important; } .wa-panel, .wa-hint { transition: none; } }
+
+/* WhatsApp widget must never block taps on the page: only the icon / open panel / nudge catch pointers */
+.wa-widget { pointer-events: none; }
+.wa-fab { pointer-events: auto; }
+.wa-panel { position: absolute; right: 0; bottom: 74px; }
+.wa-widget.is-open .wa-panel { pointer-events: auto; }
+@media (max-width: 768px) { .wa-panel { bottom: 66px; } }
