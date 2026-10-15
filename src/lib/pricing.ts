@@ -8,12 +8,12 @@ export type Mode = 'regular' | 'jain';
 export type CartInput = { id: string; mode: Mode; qty: number }[];
 export type PricedLine = { id: string; name: string; mode: Mode; qty: number; unit: number; total: number };
 
-/** The shop. Coordinates are where delivery distance is measured from — please confirm on Google Maps. */
+/** The shop. Coordinates are where delivery distance is measured from (the shop's Google Maps pin). */
 export const SHOP = {
   name: 'Misal Hub',
   address: 'Shop 2/3, Silver Cassia Apartment, Pleasant Park Road, Mira Road East, Thane 401107',
-  lat: 19.2892,
-  lng: 72.85905,
+  lat: 19.274968,   // the shop's Google Maps pin
+  lng: 72.8772034,
   phone: '+91 90041 67448',
   whatsapp: '919004167448',
 };

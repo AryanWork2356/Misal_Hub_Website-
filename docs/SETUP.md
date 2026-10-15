@@ -62,7 +62,7 @@ This is `GOOGLE_MAPS_API_KEY`.
 
 Open Google Maps, find your shop, **right-click the pin → click the numbers at the top of the menu** (they copy), e.g. `19.2851, 72.8613`.
 Set `SHOP_LATLNG=19.2851,72.8613`. Delivery distances and fees are measured from this point, so please check it carefully.
-(The old website's map embed used `19.2892, 72.85905`, which OpenStreetMap suggests may be about 2 km away from "Pleasant Park" — confirm the real one.)
+The built-in default is already the shop's real Google Maps pin (`19.274968, 72.8772034`); set `SHOP_LATLNG` only if the shop moves.
 
 ## 6. Put the site online (Vercel)
 

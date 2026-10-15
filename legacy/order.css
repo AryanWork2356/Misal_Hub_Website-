@@ -68,7 +68,7 @@
 .cart-fab[hidden] { display: none; }
 .cart-fab .btn { gap: 14px; padding: 14px 28px; background: var(--brown-500); box-shadow: 0 14px 40px rgba(0,0,0,.6); }
 .cf-sep { width: 1px; height: 16px; background: var(--orange); opacity: .5; }
-body.order-page .wa-float { bottom: 28px; }
+body.order-page .wa-widget { bottom: 28px; }
 
 /* ---------- Drawer ---------- */
 .scrim { position: fixed; inset: 0; z-index: 1999; background: rgba(10,4,1,.7); opacity: 0; pointer-events: none; transition: opacity .3s; }

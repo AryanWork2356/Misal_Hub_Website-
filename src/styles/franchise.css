@@ -866,11 +866,9 @@ html.lenis, html.lenis body { height: auto; }
   .pg-franchise .item-body h3 { font-size: 1rem; }
   .pg-franchise .stepper button { width: 40px; height: 38px; }
   .pg-franchise .cart-fab { bottom: max(18px, env(safe-area-inset-bottom)); }
-  .pg-franchise.order-page .wa-float { bottom: 96px !important; }
   .pg-franchise.order-page .scroll-top { bottom: 152px !important; }
 
   /* ---------- floating buttons a touch smaller ---------- */
-  .pg-franchise .wa-float { width: 46px; height: 46px; right: 16px; bottom: 18px; }
   .pg-franchise .scroll-top { right: 20px; bottom: 74px; width: 38px; height: 38px; }
 }
 
@@ -955,3 +953,64 @@ html.lenis, html.lenis body { height: auto; }
 @keyframes franchise-dotGreen { 0%, 100% { box-shadow: 0 0 0 2px #fff, 0 0 5px 1px rgba(34,197,94,.55); } 50% { box-shadow: 0 0 0 2px #fff, 0 0 15px 5px rgba(34,197,94,.95); } }
 @keyframes franchise-dotRed   { 0%, 100% { box-shadow: 0 0 0 2px #fff, 0 0 5px 1px rgba(239,68,68,.55); } 50% { box-shadow: 0 0 0 2px #fff, 0 0 15px 5px rgba(239,68,68,.95); } }
 @media (prefers-reduced-motion: reduce) { .pg-franchise .nav-links .deliver-btn i, .pg-franchise .navbar .deliver-pill i { animation: none !important; } }
+
+/* ---- open/closed dot: small and tidy (no big halo) ---- */
+.pg-franchise .nav-links .deliver-btn i, .pg-franchise .navbar .deliver-pill i { width: 7px; height: 7px; }
+.pg-franchise .nav-links .deliver-btn.s-open i, .pg-franchise .navbar .deliver-pill.s-open i { box-shadow: 0 0 0 1.5px rgba(255,255,255,.9), 0 0 5px 1px rgba(34,197,94,.7); animation: franchise-dotGreen 1.8s ease-in-out infinite; }
+.pg-franchise .nav-links .deliver-btn.s-closed i, .pg-franchise .navbar .deliver-pill.s-closed i { box-shadow: 0 0 0 1.5px rgba(255,255,255,.9), 0 0 5px 1px rgba(239,68,68,.7); animation: franchise-dotRed 1.8s ease-in-out infinite; }
+@keyframes franchise-dotGreen { 0%, 100% { box-shadow: 0 0 0 1.5px rgba(255,255,255,.9), 0 0 3px 0 rgba(34,197,94,.5); } 50% { box-shadow: 0 0 0 1.5px rgba(255,255,255,.9), 0 0 7px 2px rgba(34,197,94,.9); } }
+@keyframes franchise-dotRed   { 0%, 100% { box-shadow: 0 0 0 1.5px rgba(255,255,255,.9), 0 0 3px 0 rgba(239,68,68,.5); } 50% { box-shadow: 0 0 0 1.5px rgba(255,255,255,.9), 0 0 7px 2px rgba(239,68,68,.9); } }
+
+/* =====================================================================
+   WHATSAPP WIDGET - glowing icon + quick-message panel
+   ===================================================================== */
+.pg-franchise .wa-widget { position: fixed; right: 24px; bottom: 24px; z-index: 1000; display: flex; flex-direction: column; align-items: flex-end; gap: 12px; }
+.pg-franchise .wa-fab { position: relative; width: 62px; height: 62px; border-radius: 50%; border: 0; cursor: pointer; display: grid; place-items: center;
+  background: radial-gradient(circle at 30% 25%, #4ff08a, #25D366 55%, #12a84c); box-shadow: 0 0 0 4px rgba(37,211,102,.18), 0 10px 30px rgba(37,211,102,.55), 0 0 34px rgba(37,211,102,.55);
+  animation: franchise-waGlow 2.4s ease-in-out infinite, franchise-waWiggle 7s ease-in-out infinite; transition: transform .25s; }
+.pg-franchise .wa-fab:hover { transform: scale(1.1); }
+.pg-franchise .wa-fab:active { transform: scale(.94); }
+.pg-franchise .wa-fab svg { position: relative; filter: drop-shadow(0 2px 3px rgba(0,0,0,.25)); }
+.pg-franchise .wa-ring { position: absolute; inset: 0; border-radius: 50%; border: 2px solid rgba(37,211,102,.7); animation: franchise-waRing 2.4s ease-out infinite; pointer-events: none; }
+.pg-franchise .wa-ring.r2 { animation-delay: 1.2s; }
+.pg-franchise .wa-dot { position: absolute; top: 3px; right: 3px; width: 13px; height: 13px; border-radius: 50%; background: #ff3b30; border: 2px solid #fff; animation: franchise-waDot 1.6s ease-in-out infinite; }
+.pg-franchise .wa-widget.is-open .wa-dot { display: none; }
+@keyframes franchise-waGlow { 0%, 100% { box-shadow: 0 0 0 4px rgba(37,211,102,.16), 0 10px 26px rgba(37,211,102,.45), 0 0 22px rgba(37,211,102,.4); } 50% { box-shadow: 0 0 0 6px rgba(37,211,102,.26), 0 10px 34px rgba(37,211,102,.7), 0 0 44px rgba(37,211,102,.75); } }
+@keyframes franchise-waRing { 0% { transform: scale(1); opacity: .9; } 100% { transform: scale(1.9); opacity: 0; } }
+@keyframes franchise-waWiggle { 0%, 88%, 100% { transform: rotate(0); } 90% { transform: rotate(-12deg); } 92% { transform: rotate(10deg); } 94% { transform: rotate(-8deg); } 96% { transform: rotate(6deg); } }
+@keyframes franchise-waDot { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.25); } }
+
+.pg-franchise .wa-hint { position: absolute; right: 74px; bottom: 16px; white-space: nowrap; background: #fff; color: #1b1b1b; font: 600 .82rem 'Poppins', sans-serif; padding: 9px 14px; border-radius: 14px 14px 4px 14px;
+  box-shadow: 0 8px 24px rgba(0,0,0,.35); opacity: 0; transform: translateX(10px) scale(.95); pointer-events: none; transition: opacity .35s, transform .35s; }
+.pg-franchise .wa-hint.show { opacity: 1; transform: none; }
+
+.pg-franchise .wa-panel { width: min(330px, calc(100vw - 32px)); border-radius: 20px; overflow: hidden; background: #0f1f19; color: #eafff3; box-shadow: 0 24px 60px rgba(0,0,0,.55), 0 0 0 1px rgba(37,211,102,.25);
+  transform-origin: bottom right; opacity: 0; transform: translateY(14px) scale(.92); pointer-events: none; visibility: hidden; transition: opacity .28s, transform .28s, visibility 0s .28s; }
+.pg-franchise .wa-widget.is-open .wa-panel { opacity: 1; transform: none; pointer-events: auto; visibility: visible; transition: opacity .28s, transform .28s; }
+.pg-franchise .wa-head { display: flex; align-items: center; gap: 12px; padding: 14px 16px; background: linear-gradient(135deg, #128c4a, #25D366); color: #06210f; }
+.pg-franchise .wa-head strong { display: block; font: 800 1rem 'Poppins', sans-serif; }
+.pg-franchise .wa-head small { display: flex; align-items: center; gap: 6px; font: 500 .72rem 'Poppins', sans-serif; color: #0b3a1c; }
+.pg-franchise .wa-head small i { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+.pg-franchise .wa-head small i.on { background: #fff; box-shadow: 0 0 6px 2px rgba(255,255,255,.8); }
+.pg-franchise .wa-head small i.off { background: #dc2626; }
+.pg-franchise .wa-avatar { width: 42px; height: 42px; border-radius: 50%; overflow: hidden; background: #000; border: 2px solid rgba(255,255,255,.7); flex-shrink: 0; }
+.pg-franchise .wa-avatar img { width: 100%; height: 100%; object-fit: cover; }
+.pg-franchise .wa-x { margin-left: auto; width: 30px; height: 30px; border-radius: 50%; border: 0; background: rgba(0,0,0,.15); color: #06210f; font-size: 1.3rem; line-height: 1; cursor: pointer; }
+.pg-franchise .wa-body { padding: 14px 14px 6px; display: grid; gap: 8px; background: #0f1f19 radial-gradient(circle at 80% 0, rgba(37,211,102,.12), transparent 60%); }
+.pg-franchise .wa-bubble { margin: 0; background: #1c3a2c; color: #eafff3; padding: 10px 13px; border-radius: 4px 14px 14px 14px; font: 500 .88rem 'Poppins', sans-serif; width: fit-content; max-width: 92%; }
+.pg-franchise .wa-quick { display: flex; align-items: center; gap: 10px; padding: 11px 14px; border-radius: 12px; text-decoration: none; background: rgba(37,211,102,.1); border: 1px solid rgba(37,211,102,.35); color: #eafff3;
+  font: 600 .86rem 'Poppins', sans-serif; transition: background .2s, transform .2s, border-color .2s; }
+.pg-franchise .wa-quick span { font-size: 1.05rem; }
+.pg-franchise .wa-quick em { margin-left: auto; font-style: normal; color: #4ff08a; transition: transform .2s; }
+.pg-franchise .wa-quick:hover { background: rgba(37,211,102,.22); border-color: #25D366; transform: translateX(3px); color: #fff; }
+.pg-franchise .wa-quick:hover em { transform: translateX(4px); }
+.pg-franchise .wa-start { display: block; margin: 8px 14px 14px; padding: 12px; text-align: center; text-decoration: none; border-radius: 50px; background: linear-gradient(135deg, #4ff08a, #25D366); color: #06210f; font: 800 .88rem 'Poppins', sans-serif; box-shadow: 0 8px 22px rgba(37,211,102,.4); }
+
+@media (max-width: 768px) {
+  .pg-franchise .wa-widget { right: 14px; bottom: 16px; }
+  .pg-franchise .wa-fab { width: 54px; height: 54px; }
+  .pg-franchise .wa-fab svg { width: 27px; height: 27px; }
+  .pg-franchise.order-page .wa-widget { bottom: 96px !important; }
+  .pg-franchise .wa-hint { right: 66px; bottom: 12px; }
+}
+@media (prefers-reduced-motion: reduce) { .pg-franchise .wa-fab, .pg-franchise .wa-ring, .pg-franchise .wa-dot { animation: none !important; } .pg-franchise .wa-panel, .pg-franchise .wa-hint { transition: none; } }
