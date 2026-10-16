@@ -6,12 +6,17 @@ import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import FloatButtons from '@/components/FloatButtons';
 import ApplyForm from '@/components/ApplyForm';
+import JsonLd from '@/components/JsonLd';
+import FaqSection from '@/components/FaqSection';
+import { pageMeta, breadcrumbSchema, FRANCHISE_FAQ } from '@/lib/seo';
 import '@/styles/franchise.css';
 
-export const metadata: Metadata = {
-  title: 'Franchise – Misal Hub | Own Your Misal Hub',
-  description: 'Join the Misal Hub franchise family. Own your own authentic Maharashtrian Misal Pav outlet in your city.',
-};
+export const metadata: Metadata = pageMeta({
+  title: 'Misal Hub Franchise – Own a Misal Pav Outlet (FOFO Model)',
+  description: 'Own a Misal Hub franchise: authentic Maharashtrian Misal Pav, a simple focused menu and a proven brand since 2015. Apply online and our team will call you within 24 hours.',
+  path: '/franchise',
+  absoluteTitle: true,
+});
 
 const PARTNER = [
   ['01', 'Authentic & High-Demand Product', 'Misal is a daily-consumption food with strong repeat customers and consistent demand throughout the year.'],
@@ -232,6 +237,8 @@ export default function FranchisePage() {
         </div>
       </section>
 
+      <FaqSection id="franchise-faq" title="Franchise" accent="questions" items={FRANCHISE_FAQ} />
+      <JsonLd data={breadcrumbSchema([{ name: 'Home', path: '/' }, { name: 'Franchise', path: '/franchise' }])} />
       <Footer variant="franchise" />
       <FloatButtons />
     </PageShell>

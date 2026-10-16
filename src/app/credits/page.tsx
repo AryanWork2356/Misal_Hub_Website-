@@ -10,8 +10,10 @@ import { PHOTO_CREDITS } from '@/data/photo-credits';
 import '@/styles/about.css';
 
 export const metadata: Metadata = {
-  title: 'Photo credits – Misal Hub',
+  title: 'Photo credits',
   description: 'Credits and licences for the dish photographs used on the Misal Hub menu.',
+  alternates: { canonical: '/credits' },
+  robots: { index: false, follow: true },
 };
 
 const names = Object.fromEntries(MENU.flatMap((c) => c.items.map((i) => [i.id, i.name])));

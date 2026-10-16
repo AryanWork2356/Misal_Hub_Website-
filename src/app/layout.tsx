@@ -1,15 +1,42 @@
 import type { Metadata, Viewport } from 'next';
 import SmoothScroll from '@/components/SmoothScroll';
 import Cursor from '@/components/Cursor';
+import JsonLd from '@/components/JsonLd';
+import { BRAND, KEYWORDS, SITE_URL, websiteSchema } from '@/lib/seo';
 import './globals.css';
 
 export const metadata: Metadata = {
-  title: 'Misal Hub – Authentic Misal Pav | Mira Road East',
-  description: 'Misal Hub – authentic Maharashtrian Misal Pav in Mira Road East since 2015. Order online or own a Misal Hub franchise.',
-  icons: { icon: '/images/logo-round.png' },
+  metadataBase: new URL(SITE_URL),
+  title: { default: 'Misal Hub – Best Misal Pav in Mira Road East | Order Online', template: '%s | Misal Hub' },
+  description: 'Misal Hub serves authentic Maharashtrian Misal Pav in Mira Road East since 2015. Order online for home delivery, or own a Misal Hub franchise.',
+  applicationName: 'Misal Hub',
+  keywords: KEYWORDS,
+  authors: [{ name: 'Misal Hub' }],
+  creator: 'Misal Hub',
+  publisher: 'Misal Hub',
+  category: 'restaurant',
+  alternates: { canonical: '/' },
+  icons: { icon: '/images/logo-round.png', apple: '/images/logo-round.png' },
+  openGraph: {
+    type: 'website', siteName: 'Misal Hub', locale: 'en_IN', url: '/',
+    title: 'Misal Hub – Best Misal Pav in Mira Road East',
+    description: 'Authentic Maharashtrian Misal Pav since 2015. Order online for delivery, or own a Misal Hub franchise.',
+    images: [{ url: '/opengraph-image', width: 1200, height: 630, alt: 'Misal Hub – authentic Misal Pav, Mira Road East' }],
+  },
+  twitter: { card: 'summary_large_image', title: 'Misal Hub – Best Misal Pav in Mira Road East', description: 'Authentic Maharashtrian Misal Pav since 2015. Order online or own a franchise.', images: ['/opengraph-image'] },
+  robots: { index: true, follow: true, googleBot: { index: true, follow: true, 'max-image-preview': 'large', 'max-snippet': -1, 'max-video-preview': -1 } },
+  formatDetection: { telephone: true, address: true, email: true },
+  verification: process.env.GOOGLE_SITE_VERIFICATION ? { google: process.env.GOOGLE_SITE_VERIFICATION } : undefined,
+  other: {
+    'geo.region': 'IN-MH',
+    'geo.placename': 'Mira Road East, Mira Bhayandar',
+    'geo.position': `${BRAND.lat};${BRAND.lng}`,
+    ICBM: `${BRAND.lat}, ${BRAND.lng}`,
+    ...(process.env.BING_SITE_VERIFICATION ? { 'msvalidate.01': process.env.BING_SITE_VERIFICATION } : {}),
+  },
 };
 
-export const viewport: Viewport = { width: 'device-width', initialScale: 1 };
+export const viewport: Viewport = { width: 'device-width', initialScale: 1, themeColor: '#1b0d05' };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -24,6 +51,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         />
       </head>
       <body suppressHydrationWarning>
+        <JsonLd data={websiteSchema()} />
         {children}
         <SmoothScroll />
         <Cursor />

@@ -54,7 +54,9 @@ const FULL = {
 const A = startServer(3200, FULL);                                                     // everything configured
 const B = startServer(3201, { RAZORPAY_KEY_ID: '', RAZORPAY_KEY_SECRET: '', APPS_SCRIPT_URL: '', ORDERS_IGNORE_HOURS: '1' }); // nothing configured
 const C = startServer(3202, { ...FULL, ORDERS_IGNORE_HOURS: '' });                    // real opening hours enforced
-await Promise.all([waitFor(3200), waitFor(3201), waitFor(3202)]);
+const D = startServer(3203, { RAZORPAY_KEY_ID: '', RAZORPAY_KEY_SECRET: '', APPS_SCRIPT_URL: 'http://127.0.0.1:4011/exec', APPS_SCRIPT_SECRET: SCRIPT_SECRET, ORDERS_TEST_MODE: '1', ORDERS_IGNORE_HOURS: '' }); // TEST MODE: no payment keys
+const E = startServer(3204, { ...FULL, ORDERS_TEST_MODE: '1' });                      // TEST MODE flag set but real keys present
+await Promise.all([waitFor(3200), waitFor(3201), waitFor(3202), waitFor(3203), waitFor(3204)]);
 
 const post = async (port, url, body, headers = {}) => {
   const r = await fetch(`http://127.0.0.1:${port}${url}`, { method: 'POST', headers: { 'Content-Type': 'application/json', ...headers }, body: typeof body === 'string' ? body : JSON.stringify(body) });
@@ -155,12 +157,21 @@ try {
   r = await post(3202, '/api/checkout/create', { items: [{ id: 'chaas', mode: 'regular', qty: 1 }], customer, type: 'Pickup' });
   ok(`opening hours enforced on the server (it is ${openNow ? 'open' : 'closed'} in India now)`, openNow ? r.json.ok === true : (r.status === 409 && r.json.code === 'closed'), `status ${r.status}`);
 
+  /* ----- TEST MODE (no payment keys yet): orders still land in the Sheet, clearly marked ----- */
+  sheetEvents.length = 0;
+  r = await post(3203, '/api/checkout/create', { items: [{ id: 'misal-pav', mode: 'regular', qty: 1 }], customer, type: 'Pickup', notes: 'less spicy' });
+  const tc = sheetEvents.find((e) => e.action === 'order_created'), tp = sheetEvents.find((e) => e.action === 'order_paid');
+  ok('test mode: order accepted without payment, reference starts with TEST-, even outside opening hours', r.json.ok && r.json.demo === true && /^TEST-MH/.test(r.json.ref) && !r.json.razorpay, JSON.stringify(r.json).slice(0, 120));
+  ok('test mode: Sheet gets the row + the "paid" event (so the e-mail is sent) and the note says TEST ORDER', tc && tp && /TEST ORDER/.test(tc.notes) && /less spicy/.test(tc.notes) && tc.total === 90 && tp.razorpayOrderId === tc.razorpayOrderId);
+  r = await post(3204, '/api/checkout/create', { items: [{ id: 'misal-pav', mode: 'regular', qty: 1 }], customer, type: 'Pickup' });
+  ok('test mode flag can NEVER bypass payment once real Razorpay keys exist', r.json.ok && !r.json.demo && r.json.razorpay?.orderId);
+
   /* ----- rate limiting ----- */
   let limited = 0;
   for (let i = 0; i < 8; i++) { const x = await post(3200, '/api/franchise', { ...app, phone: '123' }); if (x.status === 429) limited++; }
   ok('franchise endpoint is rate limited against abuse', limited > 0, `${limited} of 8 blocked`);
 } finally {
-  [A, B, C].forEach((p) => p.kill());
+  [A, B, C, D, E].forEach((p) => p.kill());
   rzp.close(); script.close();
 }
 console.log(`\n${pass}/${pass + fail} passed`);

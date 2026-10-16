@@ -5,12 +5,15 @@ import Topbar from '@/components/Topbar';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import FloatButtons from '@/components/FloatButtons';
+import JsonLd from '@/components/JsonLd';
+import { pageMeta, breadcrumbSchema } from '@/lib/seo';
 import '@/styles/about.css';
 
-export const metadata: Metadata = {
-  title: 'About Us – Misal Hub | Mira Road East',
-  description: 'The story behind Misal Hub — it started on the street in 2015 and word spread fast.',
-};
+export const metadata: Metadata = pageMeta({
+  title: 'Our Story Since 2015 – Founders Vinay & Sonam Jadhav',
+  description: 'The story of Misal Hub, Mira Road East: started in 2015 by founders Vinay Jadhav and Sonam Jadhav, and loved for its authentic Maharashtrian Misal Pav ever since.',
+  path: '/about',
+});
 
 export default function AboutPage() {
   return (
@@ -87,6 +90,7 @@ export default function AboutPage() {
         </div>
       </section>
 
+      <JsonLd data={breadcrumbSchema([{ name: 'Home', path: '/' }, { name: 'About', path: '/about' }])} />
       <Footer variant="about" />
       <FloatButtons />
     </PageShell>

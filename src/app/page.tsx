@@ -9,6 +9,9 @@ import { OpenBadge } from '@/components/OpenLive';
 import { MENU, BESTSELLERS } from '@/data/menu';
 import { getReviewsData } from '@/lib/server/reviews';
 import { SHOP } from '@/lib/pricing';
+import JsonLd from '@/components/JsonLd';
+import FaqSection from '@/components/FaqSection';
+import { HOME_FAQ, restaurantSchema, breadcrumbSchema } from '@/lib/seo';
 import '@/styles/home.css';
 
 const byId = Object.fromEntries(MENU.flatMap((c) => c.items.map((i) => [i.id, i])));
@@ -24,6 +27,10 @@ function Stars({ n }: { n: number }) {
 }
 
 const clip = (t: string, n = 300) => (t.length > n ? `${t.slice(0, n).trimEnd()}…` : t);
+
+export const metadata = {
+  alternates: { canonical: '/' },
+};
 
 export default async function HomePage() {
   const google = await getReviewsData();
@@ -208,11 +215,17 @@ export default async function HomePage() {
         </div>
       </section>
 
+      <FaqSection title="Questions about" accent="Misal Hub" items={HOME_FAQ} />
+
       {/* ===== CONTACT ===== */}
       <section className="contact" id="contact">
         <div className="container">
           <div className="section-hd">
             <h2 className="section-title">Visit <span className="gold">Misal Hub</span></h2>
+            <p className="seo-lead">
+              Misal Hub is a Maharashtrian Misal Pav restaurant on Pleasant Park Road, near Gayatri Dham, in Mira Road East (Mira Bhayandar, Thane) —
+              open every day, 8 AM to 8 PM. Dine in, take away, or get hot misal delivered across Mira Road and Bhayandar.
+            </p>
           </div>
           <div className="contact-grid">
             <div className="contact-card reveal">
@@ -245,6 +258,8 @@ export default async function HomePage() {
         </div>
       </section>
 
+      <JsonLd data={restaurantSchema()} />
+      <JsonLd data={breadcrumbSchema([{ name: 'Home', path: '/' }])} />
       <Footer variant="home" />
       <FloatButtons />
     </PageShell>

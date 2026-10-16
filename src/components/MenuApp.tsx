@@ -275,6 +275,12 @@ export default function MenuApp() {
       if (!j.ok) { setError(j.error || 'Could not start payment.'); setPaying(false); return; }
       try { localStorage.setItem(CUSTOMER_KEY, JSON.stringify({ name, phone, email, address })); } catch { /* ignore */ }
 
+      if (j.demo) {   // TEST MODE (no payment keys yet): the order is already in the Sheet
+        writeCart({});
+        setPaid({ ref: j.ref, total: j.totals.total });
+        setStep('success'); setPaying(false); return;
+      }
+
       if (!(await loadRazorpay()) || !window.Razorpay) { setError('Could not load the payment window. Please check your internet and try again.'); setPaying(false); return; }
       const rz = new window.Razorpay({
         key: j.razorpay.key, amount: j.razorpay.amount, currency: j.razorpay.currency, order_id: j.razorpay.orderId,

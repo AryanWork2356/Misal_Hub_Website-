@@ -86,3 +86,8 @@ The built-in default is already the shop's real Google Maps pin (`19.274968, 72.
 
 * **Address matching without a Google key:** if the exact address is not on OpenStreetMap, the site tries simpler versions (without flat number, building and "Opp / Near" landmarks) and then charges by the neighbourhood, clearly marked "approximate". Customers can tap "Use my current location" for an exact fee. Google's address search (step 3) is far better at this.
 * **Coordinates are trusted from the customer's phone** (GPS or the matched address). The order email shows the typed address plus a map link, so a mismatch is easy to spot; tell us if you want a stricter check.
+## Test mode (see orders in the Sheet before Razorpay is connected)
+
+Set `ORDERS_TEST_MODE` = `1` in Vercel and redeploy. While the Razorpay keys are **not** set, checkout then skips payment and writes the order to the Sheet
+(and sends the shop e-mail) marked **TEST-** in the order reference and "TEST ORDER - no payment was taken" in Notes. It also ignores opening hours.
+Once real Razorpay keys exist the flag does nothing (payment is always required), but **delete the variable before launch**.

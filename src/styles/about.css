@@ -1150,3 +1150,52 @@ html.lenis, html.lenis body { height: auto; }
 .pg-about .wa-panel { position: absolute; right: 0; bottom: 74px; }
 .pg-about .wa-widget.is-open .wa-panel { pointer-events: auto; }
 @media (max-width: 768px) { .pg-about .wa-panel { bottom: 66px; } }
+
+/* =====================================================================
+   FAQ accordion + local SEO intro line
+   ===================================================================== */
+.pg-about .seo-lead { max-width: 760px; margin: 14px auto 0; text-align: center; font-size: .98rem; line-height: 1.75; color: #E9CFB3; }
+.pg-about .faq-sec { padding: 80px 0 40px; }
+.pg-about .faq-list { max-width: 860px; margin: 34px auto 0; display: grid; gap: 12px; }
+.pg-about .faq-item { border: 1px solid rgba(255,138,31,.28); border-radius: 16px; background: rgba(255,255,255,.035); overflow: hidden; transition: border-color .25s, background .25s, box-shadow .25s; }
+.pg-about .faq-item:hover { border-color: rgba(255,138,31,.6); }
+.pg-about .faq-item[open] { background: rgba(255,138,31,.08); border-color: rgba(255,138,31,.7); box-shadow: 0 10px 30px rgba(0,0,0,.25); }
+.pg-about .faq-item summary { list-style: none; cursor: pointer; display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 18px 22px; }
+.pg-about .faq-item summary::-webkit-details-marker { display: none; }
+.pg-about .faq-item summary h3 { margin: 0; font: 600 1.02rem/1.45 'Poppins', sans-serif; color: #FFD2A3; }
+.pg-about .faq-plus { position: relative; flex: 0 0 22px; height: 22px; border-radius: 50%; background: rgba(255,138,31,.18); }
+.pg-about .faq-plus::before, .pg-about .faq-plus::after { content: ''; position: absolute; left: 50%; top: 50%; width: 10px; height: 2px; background: #FF8A1F; transform: translate(-50%, -50%); transition: transform .25s; }
+.pg-about .faq-plus::after { transform: translate(-50%, -50%) rotate(90deg); }
+.pg-about .faq-item[open] .faq-plus::after { transform: translate(-50%, -50%) rotate(0); }
+.pg-about .faq-item p { margin: 0; padding: 0 22px 20px; font-size: .96rem; line-height: 1.75; color: #EBD3BA; }
+.pg-about .faq-item summary:focus-visible { outline: 2px solid #FF8A1F; outline-offset: -2px; border-radius: 16px; }
+@media (max-width: 768px) {
+  .pg-about .faq-sec { padding: 54px 0 20px; }
+  .pg-about .faq-item summary { padding: 15px 16px; }
+  .pg-about .faq-item summary h3 { font-size: .94rem; }
+  .pg-about .faq-item p { padding: 0 16px 16px; font-size: .92rem; }
+  .pg-about .seo-lead { font-size: .92rem; padding: 0 6px; }
+}
+
+/* =====================================================================
+   FAQ accordion + SEO intro line
+   ===================================================================== */
+.pg-about .seo-lead { max-width: 760px; margin: 14px auto 0; text-align: center; font-size: 1rem; line-height: 1.7; opacity: .85; }
+.pg-about .faq-sec { padding: 80px 0; }
+.pg-about .faq-list { max-width: 860px; margin: 0 auto; display: grid; gap: 12px; }
+.pg-about .faq-item { border: 1px solid rgba(255,138,31,.28); border-radius: 16px; background: rgba(255,255,255,.04); transition: border-color .25s, background .25s, box-shadow .25s; }
+.pg-about .faq-item[open] { border-color: #FF8A1F; background: rgba(255,138,31,.08); box-shadow: 0 10px 30px rgba(0,0,0,.25); }
+.pg-about .faq-item summary { list-style: none; cursor: pointer; display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 18px 22px; }
+.pg-about .faq-item summary::-webkit-details-marker { display: none; }
+.pg-about .faq-item summary h3 { margin: 0; font: 600 1.02rem 'Poppins', sans-serif; line-height: 1.45; color: #FFB067; }
+.pg-about .faq-plus { position: relative; flex: 0 0 22px; width: 22px; height: 22px; }
+.pg-about .faq-plus::before, .pg-about .faq-plus::after { content: ''; position: absolute; left: 50%; top: 50%; width: 14px; height: 2px; background: #FF8A1F; border-radius: 2px; transform: translate(-50%, -50%); transition: transform .3s; }
+.pg-about .faq-plus::after { transform: translate(-50%, -50%) rotate(90deg); }
+.pg-about .faq-item[open] .faq-plus::after { transform: translate(-50%, -50%) rotate(0); }
+.pg-about .faq-item p { margin: 0; padding: 0 22px 20px; line-height: 1.75; font-size: .96rem; opacity: .9; }
+@media (max-width: 768px) {
+  .pg-about .faq-sec { padding: 52px 0; }
+  .pg-about .faq-item summary { padding: 15px 16px; }
+  .pg-about .faq-item summary h3 { font-size: .95rem; }
+  .pg-about .faq-item p { padding: 0 16px 16px; font-size: .92rem; }
+}

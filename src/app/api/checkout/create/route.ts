@@ -17,7 +17,9 @@ const makeRef = () => {
  */
 export async function POST(req: Request) {
   if (!rateLimit(`checkout:${clientIp(req)}`, 12, 10 * 60_000)) return json({ ok: false, error: 'Too many attempts — please wait a few minutes.' }, 429);
-  if (!paymentsConfigured()) return json({ ok: false, code: 'not_configured', error: 'Online payment is being set up. Please call us on +91 90041 67448 to order.' }, 503);
+  // TEST MODE only ever applies while real payment keys are missing, so it can never bypass a live payment
+  const demo = env.testMode() && !paymentsConfigured();
+  if (!paymentsConfigured() && !demo) return json({ ok: false, code: 'not_configured', error: 'Online payment is being set up. Please call us on +91 90041 67448 to order.' }, 503);
 
   let b: {
     items?: unknown; type?: unknown; address?: unknown; lat?: unknown; lng?: unknown; notes?: unknown;
@@ -25,7 +27,7 @@ export async function POST(req: Request) {
   };
   try { b = await req.json(); } catch { return json({ ok: false, error: 'Bad request.' }, 400); }
 
-  if (!env.ignoreHours() && !isOpenNow()) return json({ ok: false, code: 'closed', error: 'We are closed right now. Orders are open from 8 AM to 8 PM — please come back then.' }, 409);
+  if (!demo && !env.ignoreHours() && !isOpenNow()) return json({ ok: false, code: 'closed', error: 'We are closed right now. Orders are open from 8 AM to 8 PM — please come back then.' }, 409);
 
   const priced = priceCart(b.items);
   if (!priced.ok) return json({ ok: false, error: priced.error }, 400);
@@ -59,7 +61,17 @@ export async function POST(req: Request) {
   }
 
   const total = priced.subtotal + fee;
-  const ref = makeRef();
+  const ref = demo ? `TEST-${makeRef()}` : makeRef();
+
+  if (demo) {
+    const items = priced.lines;
+    const common = { ref, customer: { name, phone, email }, type, address, mapLink: lat != null && lng != null ? mapsLink(lat, lng) : '', distanceKm, items, subtotal: priced.subtotal, deliveryFee: fee, total, notes: `TEST ORDER - no payment was taken.${notes ? ' ' + notes : ''}` };
+    const okRow = await notifySheet({ action: 'order_created', razorpayOrderId: `TEST-${ref}`, status: 'Awaiting payment', ...common });
+    const okPaid = okRow && await notifySheet({ action: 'order_paid', razorpayOrderId: `TEST-${ref}`, paymentId: 'TEST-NO-PAYMENT' });
+    if (!okRow || !okPaid) return json({ ok: false, error: 'Test order could not be saved to the Sheet. Check APPS_SCRIPT_URL and APPS_SCRIPT_SECRET in Vercel.' }, 502);
+    return json({ ok: true, demo: true, ref, totals: { subtotal: priced.subtotal, deliveryFee: fee, total, distanceKm }, prefill: { name, email, contact: phone } });
+  }
+
   let rzp;
   try {
     rzp = await createRazorpayOrder(total, ref, { ref, name, phone, type });

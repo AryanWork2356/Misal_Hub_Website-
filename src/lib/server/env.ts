@@ -13,6 +13,8 @@ export const env = {
   googlePlaceId: () => process.env.GOOGLE_PLACE_ID || '',
   /** "1" lets orders through outside 8 AM–8 PM (testing only) */
   ignoreHours: () => process.env.ORDERS_IGNORE_HOURS === '1',
+  /** "1" = TEST MODE: while Razorpay keys are NOT set, orders are recorded in the Sheet as TEST orders with no payment (never active once real keys exist) */
+  testMode: () => process.env.ORDERS_TEST_MODE === '1',
   /** override the shop's map pin without touching code: "19.2892,72.85905" */
   shopLatLng: (): { lat: number; lng: number } | null => {
     const v = process.env.SHOP_LATLNG;
