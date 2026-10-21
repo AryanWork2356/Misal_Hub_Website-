@@ -26,7 +26,7 @@
 var ORDERS = 'Orders';
 var FRANCHISE = 'Franchise Applications';
 var ORDER_HEADERS = ['Created', 'Order ref', 'Status', 'Razorpay order id', 'Payment id', 'Paid at', 'Name', 'Phone', 'Email',
-  'Type', 'Address', 'Map link', 'Distance (km)', 'Items', 'Subtotal', 'Delivery fee', 'Total', 'Notes'];
+  'Type', 'Address', 'Map link', 'Distance (km)', 'Items', 'Subtotal', 'Delivery fee', 'Total', 'Notes', 'Promo', 'Discount', 'Source'];
 var FRANCHISE_HEADERS = ['Received', 'Name', 'Phone', 'Email', 'City', 'Message'];
 
 function prop_(k) { return PropertiesService.getScriptProperties().getProperty(k) || ''; }
@@ -39,6 +39,12 @@ function shopEmail_() { return prop_('NOTIFY_EMAIL') || Session.getEffectiveUser
 function sheet_(name, headers) {
   var ss = SpreadsheetApp.getActiveSpreadsheet();
   var sh = ss.getSheetByName(name);
+  if (sh && name === ORDERS) {
+    var have = sh.getLastColumn();
+    if (have > 0 && have < headers.length) {
+      sh.getRange(1, have + 1, 1, headers.length - have).setValues([headers.slice(have)]).setFontWeight('bold').setBackground('#FFE0B8');
+    }
+  }
   if (!sh) {
     sh = ss.insertSheet(name);
     sh.getRange(1, 1, 1, headers.length).setValues([headers]).setFontWeight('bold').setBackground('#FFE0B8');
@@ -91,6 +97,7 @@ function doPost(e) {
     if (!prop_('SECRET') || data.secret !== prop_('SECRET')) return out_({ ok: false, error: 'unauthorized' });
     if (data.action === 'order_created') return out_(orderCreated_(data));
     if (data.action === 'order_paid') return out_(orderPaid_(data));
+    if (data.action === 'promo_check') return out_({ ok: true, used: promoUsed_(data.phone, data.code) });
     if (data.action === 'franchise') return out_(franchise_(data));
     return out_({ ok: false, error: 'unknown action' });
   } catch (err) {
@@ -106,11 +113,32 @@ function itemsText_(items) {
   }).join('\n');
 }
 
+/** Has this phone number already used this promo code? Counts paid orders and unpaid ones started in the last 30 minutes. */
+function promoUsed_(phone, code) {
+  if (!code || !phone) return false;
+  var sh = sheet_(ORDERS, ORDER_HEADERS);
+  var n = sh.getLastRow() - 1;
+  if (n < 1) return false;
+  var want = String(phone).replace(/\D/g, '').slice(-10);
+  var rows = sh.getRange(2, 1, n, 19).getValues();      // columns A..S (Created ... Promo)
+  var now = new Date().getTime();
+  for (var i = 0; i < rows.length; i++) {
+    var r = rows[i];
+    if (String(r[18]).toUpperCase() !== String(code).toUpperCase()) continue;
+    if (String(r[7]).replace(/\D/g, '').slice(-10) !== want) continue;
+    var status = String(r[2]);
+    if (status.indexOf('Paid') === 0) return true;
+    if (status === 'Awaiting payment' && r[0] instanceof Date && now - r[0].getTime() < 30 * 60 * 1000) return true;
+  }
+  return false;
+}
+
 function orderCreated_(d) {
   var sh = sheet_(ORDERS, ORDER_HEADERS);
   var c = d.customer || {};
+  if (d.promo && promoUsed_(c.phone, d.promo)) return { ok: false, error: 'promo_used' };    // checked again here, inside the lock, so two quick orders cannot both get the offer
   sh.appendRow([new Date(), cell_(d.ref), 'Awaiting payment', cell_(d.razorpayOrderId), '', '', cell_(c.name), cell_(c.phone), cell_(c.email),
-    cell_(d.type), cell_(d.address), cell_(d.mapLink), d.distanceKm || '', cell_(itemsText_(d.items)), d.subtotal, d.deliveryFee, d.total, cell_(d.notes)]);
+    cell_(d.type), cell_(d.address), cell_(d.mapLink), d.distanceKm || '', cell_(itemsText_(d.items)), d.subtotal, d.deliveryFee, d.total, cell_(d.notes), cell_(d.promo || ''), d.discount || '', cell_(d.source || '')]);
   return { ok: true };
 }
 
@@ -130,9 +158,9 @@ function orderPaid_(d) {
   sh.getRange(r, 5).setValue(cell_(d.paymentId));
   sh.getRange(r, 6).setValue(new Date());
 
-  var o = { ref: row[1], name: row[6], phone: row[7], email: row[8], type: row[9], address: row[10], map: row[11], km: row[12], items: row[13], sub: row[14], fee: row[15], total: row[16], notes: row[17] };
+  var o = { ref: row[1], name: row[6], phone: row[7], email: row[8], type: row[9], address: row[10], map: row[11], km: row[12], items: row[13], sub: row[14], fee: row[15], total: row[16], notes: row[17], promo: row[18], discount: row[19] };
   var html = '<h2>New PAID order ' + esc_(o.ref) + '</h2>' +
-    '<p><b>' + esc_(o.type) + '</b> &middot; Total <b>Rs ' + esc_(o.total) + '</b> (items Rs ' + esc_(o.sub) + ' + delivery Rs ' + esc_(o.fee) + ')</p>' +
+    '<p><b>' + esc_(o.type) + '</b> &middot; Total <b>Rs ' + esc_(o.total) + '</b> (items Rs ' + esc_(o.sub) + (o.discount ? ' - offer ' + esc_(o.promo) + ' Rs ' + esc_(o.discount) : '') + ' + delivery Rs ' + esc_(o.fee) + ')</p>' +
     '<pre style="font-size:14px">' + esc_(o.items) + '</pre>' +
     '<p><b>' + esc_(o.name) + '</b> &middot; ' + esc_(o.phone) + (o.email ? ' &middot; ' + esc_(o.email) : '') + '</p>' +
     (o.type === 'Delivery' ? '<p>' + esc_(o.address) + '<br>' + (o.km ? esc_(o.km) + ' km &middot; ' : '') + '<a href="' + esc_(o.map) + '">Open in Google Maps</a></p>' : '<p>Pickup from shop.</p>') +

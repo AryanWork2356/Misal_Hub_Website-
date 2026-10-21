@@ -6,6 +6,7 @@ import { getLenis } from '@/lib/lenis';
 import { cartServerSnapshot, cartSnapshot, parseCart, subscribeCart, writeCart, type Cart } from '@/lib/cart';
 import { DELIVERY, SHOP, deliveryQuote, hasModePrice, isOpenNow, rupee, unitPrice, type Mode } from '@/lib/pricing';
 import { useOrderStatus } from '@/lib/useOrderStatus';
+import { normCode, promoDiscount, PROMOS } from '@/lib/promo';
 
 type Line = { key: string; it: Item; m: Mode; qty: number; price: number };
 type Step = 'cart' | 'details' | 'success';
@@ -92,6 +93,11 @@ export default function MenuApp() {
   const [error, setError] = useState('');
   const [paid, setPaid] = useState<{ ref: string; total: number } | null>(null);
   const [activeCat, setActiveCat] = useState('');
+  const [promo, setPromo] = useState('');            // applied offer code
+  const [promoInput, setPromoInput] = useState('');
+  const [promoMsg, setPromoMsg] = useState('');
+  const [promoBusy, setPromoBusy] = useState(false);
+  const [promoUsed, setPromoUsed] = useState(false);   // this customer has already used the first-order offer
 
   const rootRef = useRef<HTMLElement>(null);
   const tabsRef = useRef<HTMLDivElement>(null);
@@ -137,9 +143,21 @@ export default function MenuApp() {
   /* delivery fee follows the cart total live (distance comes from the one address check) */
   const dq = type === 'Delivery' && quote ? deliveryQuote(quote.distanceKm) : null;
   const fee = dq && dq.deliverable ? dq.fee : 0;
-  const total = sum + fee;
+  const pd = promo ? promoDiscount(promo, sum) : null;
+  const discount = pd?.discount ?? 0;
+  const total = sum - discount + fee;
   const typeOn = type === 'Delivery' ? ost.delivery : ost.pickup;
   const canPay = open && typeOn && count > 0 && !paying && (type === 'Pickup' || (!!dq && dq.deliverable));
+
+  /* an offer link (?promo=MISAL10) or the /offer page remembers the code; it is re-checked on the server when paying */
+  useEffect(() => {
+    try {
+      if (localStorage.getItem('mh_promo_used') === '1') { setPromoUsed(true); return; }   // already enjoyed it: never show the offer again
+      const fromUrl = normCode(new URLSearchParams(window.location.search).get('promo'));
+      const code = fromUrl || normCode(localStorage.getItem('mh_promo'));
+      if (code && PROMOS[code]) { setPromo(code); localStorage.setItem('mh_promo', code); }
+    } catch { /* ignore */ }
+  }, []);
 
   /* if the owner pauses delivery, switch the customer to Pickup (when that is still on) */
   useEffect(() => { if (!ost.delivery && ost.pickup && type === 'Delivery') setType('Pickup'); }, [ost.delivery, ost.pickup, type]);
@@ -250,6 +268,37 @@ export default function MenuApp() {
     );
   }
 
+  /* ---------- offer code ---------- */
+  function removePromo() {
+    setPromo(''); setPromoMsg('');
+    try { localStorage.removeItem('mh_promo'); } catch { /* ignore */ }
+  }
+  /** the offer has been used (by this device or this phone number): drop it and never show it again */
+  function retirePromo() {
+    removePromo(); setPromoUsed(true);
+    try { localStorage.setItem('mh_promo_used', '1'); } catch { /* ignore */ }
+  }
+  async function applyPromo() {
+    const code = normCode(promoInput);
+    setPromoMsg('');
+    if (!code) return setPromoMsg('Type your offer code first.');
+    setPromoBusy(true);
+    try {
+      const r = await fetch('/api/promo/check', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code, phone: field('phone'), subtotal: sum }),
+      });
+      const j = await r.json();
+      if (!j.ok) { if (j.code === 'promo_used') retirePromo(); setPromoMsg(j.error || 'That offer could not be applied.'); return; }
+      setPromo(code); setPromoInput('');
+      try { localStorage.setItem('mh_promo', code); } catch { /* ignore */ }
+    } catch {
+      setPromoMsg('Could not check the offer. Please try again.');
+    } finally {
+      setPromoBusy(false);
+    }
+  }
+
   /* ---------- pay ---------- */
   async function pay() {
     setError('');
@@ -268,16 +317,20 @@ export default function MenuApp() {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           items: lines.map((l) => ({ id: l.it.id, mode: l.m, qty: l.qty })),
-          customer: { name, phone, email }, type, notes,
+          customer: { name, phone, email }, type, notes, promo: promo || undefined, src: (() => { try { return localStorage.getItem('mh_src') || undefined; } catch { return undefined; } })(),
           ...(type === 'Delivery' && quote ? { address, lat: quote.lat, lng: quote.lng } : {}),
         }),
       });
       const j = await res.json();
-      if (!j.ok) { setError(j.error || 'Could not start payment.'); setPaying(false); return; }
+      if (!j.ok) {
+        if (j.code === 'promo_used') retirePromo();   // the offer was already used with this number: drop it, the customer can still order
+        setError(j.error || 'Could not start payment.'); setPaying(false); return;
+      }
       try { localStorage.setItem(CUSTOMER_KEY, JSON.stringify({ name, phone, email, address })); } catch { /* ignore */ }
 
       if (j.demo) {   // TEST MODE (no payment keys yet): the order is already in the Sheet
         writeCart({});
+        if (promo) retirePromo();
         setPaid({ ref: j.ref, total: j.totals.total });
         setStep('success'); setPaying(false); return;
       }
@@ -298,6 +351,7 @@ export default function MenuApp() {
             setPaying(false); return;
           }
           writeCart({});
+          if (promo) retirePromo();
           setPaid({ ref: j.ref, total: j.totals.total });
           setStep('success'); setPaying(false);
         },
@@ -352,6 +406,7 @@ export default function MenuApp() {
           <p className="om-delivery-note">
             Delivery ₹{DELIVERY.nearFee} up to {DELIVERY.nearKm} km, ₹{DELIVERY.farFee} beyond that — we deliver up to {DELIVERY.maxKm} km.
             {!open && <strong> We are closed right now — orders reopen at 8 AM.</strong>}
+            {pd && <strong className="promo-note"> Offer {pd.code} applied: {pd.blurb}.</strong>}
             {open && !ost.delivery && <strong> Delivery is paused right now{ost.message ? ` — ${ost.message}` : ''}.{ost.pickup ? ' Pickup is still available.' : ' Orders are paused.'}</strong>}
             {open && ost.delivery && !ost.pickup && <strong> Pickup is paused right now{ost.message ? ` — ${ost.message}` : ''}.</strong>}
           </p>
@@ -543,6 +598,20 @@ export default function MenuApp() {
             <label>Phone number<input name="phone" type="tel" inputMode="numeric" autoComplete="tel" required placeholder="10-digit mobile number" /></label>
             <label><span>Email <em className="opt">for your receipt · optional</em></span><input name="email" type="email" autoComplete="email" placeholder="you@example.com" /></label>
 
+            {!promoUsed && <h3>Offer code <em className="opt">optional</em></h3>}
+            {promoUsed ? null : pd ? (
+              <div className="promo-on" role="status">
+                <span><b>{pd.code}</b> applied · {pd.blurb} — you save <b>{rupee(pd.discount)}</b></span>
+                <button type="button" onClick={removePromo}>Remove</button>
+              </div>
+            ) : (
+              <div className="promo-row">
+                <input value={promoInput} onChange={(e) => setPromoInput(e.target.value.toUpperCase())} placeholder="Have a code? e.g. MISAL10" autoComplete="off" aria-label="Offer code" />
+                <button type="button" onClick={applyPromo} disabled={promoBusy}>{promoBusy ? 'Checking…' : 'Apply'}</button>
+              </div>
+            )}
+            {promoMsg && <p className="promo-msg" role="alert">{promoMsg}</p>}
+
             <h3>How would you like it?</h3>
             <div className="otype" role="radiogroup" aria-label="Order type">
               <label className={`otype-card${type === 'Delivery' ? ' on' : ''}`}>
@@ -590,6 +659,7 @@ export default function MenuApp() {
               <>
                 <div className="foot-rows cd-totals">
                   <div><span>Subtotal</span><b>{rupee(sum)}</b></div>
+                  {discount > 0 && <div className="sum-disc"><span>Offer {promo}</span><b>−{rupee(discount)}</b></div>}
                   <small className="cd-small">Delivery charge is worked out from your address at checkout.</small>
                 </div>
                 {!open && <p className="form-error">We are closed right now. Orders open daily from 8 AM to 8 PM.</p>}
@@ -601,6 +671,7 @@ export default function MenuApp() {
               <>
                 <div className="sum">
                   <div><span>Subtotal</span><b>{rupee(sum)}</b></div>
+                  {discount > 0 && <div className="sum-disc"><span>Offer {promo}</span><b>−{rupee(discount)}</b></div>}
                   <div><span>Delivery</span><b>{type === 'Pickup' ? '—' : dq?.deliverable ? rupee(dq.fee) : 'Check address'}</b></div>
                   <div className="sum-total"><span>Total</span><b>{rupee(total)}</b></div>
                 </div>

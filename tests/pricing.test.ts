@@ -4,6 +4,7 @@ import { DELIVERY, deliveryQuote, isOpenNow, priceCart } from '@/lib/pricing';
 import { addressQueries } from '@/lib/addressQueries';
 import { verifyPaymentSignature, verifyWebhookSignature } from '@/lib/server/razorpay';
 import { MENU } from '@/data/menu';
+import { normCode, promoDiscount } from '@/lib/promo';
 
 describe('delivery fee — the owner rules (₹50 up to 1 km, ₹80 beyond, nothing past 5 km)', () => {
   it('rules in code match what was agreed', () => {
@@ -151,5 +152,28 @@ describe('Razorpay signatures', () => {
     expect(verifyWebhookSignature(body, good)).toBe(true);
     expect(verifyWebhookSignature(body + ' ', good)).toBe(false);
     expect(verifyWebhookSignature(body, '')).toBe(false);
+  });
+});
+
+describe('promo code MISAL10 — flat 10% off the food total, no cap', () => {
+  it('10% rounded down to whole rupees', () => {
+    expect(promoDiscount('MISAL10', 90)).toMatchObject({ code: 'MISAL10', discount: 9 });
+    expect(promoDiscount('MISAL10', 285)?.discount).toBe(28);   // 28.5 -> 28
+    expect(promoDiscount('MISAL10', 5)?.discount).toBe(0);
+  });
+  it('no cap: 10% of any order, big or small', () => {
+    expect(promoDiscount('MISAL10', 500)?.discount).toBe(50);
+    expect(promoDiscount('MISAL10', 680)?.discount).toBe(68);
+    expect(promoDiscount('MISAL10', 5000)?.discount).toBe(500);
+  });
+  it('codes are not case or space sensitive', () => {
+    expect(normCode(' misal-10 ')).toBe('MISAL10');
+    expect(promoDiscount('misal 10', 200)?.discount).toBe(20);
+  });
+  it('unknown / empty codes and silly totals give nothing', () => {
+    expect(promoDiscount('FREE100', 300)).toBeNull();
+    expect(promoDiscount('', 300)).toBeNull();
+    expect(promoDiscount('MISAL10', 0)).toBeNull();
+    expect(promoDiscount('MISAL10', NaN)).toBeNull();
   });
 });

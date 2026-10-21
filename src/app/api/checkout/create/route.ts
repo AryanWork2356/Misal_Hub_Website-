@@ -3,7 +3,8 @@ import { drivingKm } from '@/lib/server/geo';
 import { env, paymentsConfigured } from '@/lib/server/env';
 import { cleanPhone, cleanText, clientIp, isEmail, json, rateLimit } from '@/lib/server/guard';
 import { createRazorpayOrder } from '@/lib/server/razorpay';
-import { notifySheet } from '@/lib/server/sheet';
+import { callSheet, notifySheet } from '@/lib/server/sheet';
+import { normCode, promoDiscount } from '@/lib/promo';
 import { getOrderStatus } from '@/lib/server/status';
 
 const makeRef = () => {
@@ -23,7 +24,7 @@ export async function POST(req: Request) {
   if (!paymentsConfigured() && !demo) return json({ ok: false, code: 'not_configured', error: 'Online payment is being set up. Please call us on +91 90041 67448 to order.' }, 503);
 
   let b: {
-    items?: unknown; type?: unknown; address?: unknown; lat?: unknown; lng?: unknown; notes?: unknown;
+    items?: unknown; promo?: unknown; src?: unknown; type?: unknown; address?: unknown; lat?: unknown; lng?: unknown; notes?: unknown;
     customer?: { name?: unknown; phone?: unknown; email?: unknown };
   };
   try { b = await req.json(); } catch { return json({ ok: false, error: 'Bad request.' }, 400); }
@@ -66,16 +67,28 @@ export async function POST(req: Request) {
     }
   }
 
-  const total = priced.subtotal + fee;
+  /* optional offer code: valid code + first use for this phone number (the Sheet is the record of who used it) */
+  const promoCode = normCode(b.promo);
+  let discount = 0;
+  if (promoCode) {
+    const d = promoDiscount(promoCode, priced.subtotal);
+    if (!d) return json({ ok: false, error: 'That offer code is not valid.' }, 400);
+    const chk = await callSheet({ action: 'promo_check', phone, code: promoCode });
+    if (chk?.used) return json({ ok: false, code: 'promo_used', error: 'Welcome back! The first-order offer was already used with this number, so it has been taken off. Your total is updated, tap Pay to continue.' }, 409);
+    discount = d.discount;
+  }
+  const total = priced.subtotal - discount + fee;
   const ref = demo ? `TEST-${makeRef()}` : makeRef();
 
   if (demo) {
     const items = priced.lines;
-    const common = { ref, customer: { name, phone, email }, type, address, mapLink: lat != null && lng != null ? mapsLink(lat, lng) : '', distanceKm, items, subtotal: priced.subtotal, deliveryFee: fee, total, notes: `TEST ORDER - no payment was taken.${notes ? ' ' + notes : ''}` };
-    const okRow = await notifySheet({ action: 'order_created', razorpayOrderId: `TEST-${ref}`, status: 'Awaiting payment', ...common });
+    const common = { ref, promo: promoCode, discount, source: cleanText(b.src, 20).replace(/[^a-zA-Z0-9_-]/g, ''), customer: { name, phone, email }, type, address, mapLink: lat != null && lng != null ? mapsLink(lat, lng) : '', distanceKm, items, subtotal: priced.subtotal, deliveryFee: fee, total, notes: `TEST ORDER - no payment was taken.${notes ? ' ' + notes : ''}` };
+    const created = await callSheet({ action: 'order_created', razorpayOrderId: `TEST-${ref}`, status: 'Awaiting payment', ...common });
+    if (created?.error === 'promo_used') return json({ ok: false, code: 'promo_used', error: 'Welcome back! The first-order offer was already used with this number.' }, 409);
+    const okRow = !!created?.ok;
     const okPaid = okRow && await notifySheet({ action: 'order_paid', razorpayOrderId: `TEST-${ref}`, paymentId: 'TEST-NO-PAYMENT' });
     if (!okRow || !okPaid) return json({ ok: false, error: 'Test order could not be saved to the Sheet. Check APPS_SCRIPT_URL and APPS_SCRIPT_SECRET in Vercel.' }, 502);
-    return json({ ok: true, demo: true, ref, totals: { subtotal: priced.subtotal, deliveryFee: fee, total, distanceKm }, prefill: { name, email, contact: phone } });
+    return json({ ok: true, demo: true, ref, totals: { subtotal: priced.subtotal, discount, deliveryFee: fee, total, distanceKm }, prefill: { name, email, contact: phone } });
   }
 
   let rzp;
@@ -86,18 +99,19 @@ export async function POST(req: Request) {
     return json({ ok: false, error: 'Payment could not be started. Please try again in a moment.' }, 502);
   }
 
-  await notifySheet({
+  const created = await callSheet({
     action: 'order_created',
-    ref, razorpayOrderId: rzp.id, status: 'Awaiting payment',
+    ref, razorpayOrderId: rzp.id, status: 'Awaiting payment', promo: promoCode, discount, source: cleanText(b.src, 20).replace(/[^a-zA-Z0-9_-]/g, ''),
     customer: { name, phone, email }, type, address,
     mapLink: lat != null && lng != null ? mapsLink(lat, lng) : '',
     distanceKm, items: priced.lines, subtotal: priced.subtotal, deliveryFee: fee, total, notes,
   });
+  if (created?.error === 'promo_used') return json({ ok: false, code: 'promo_used', error: 'Welcome back! The first-order offer was already used with this number, so it has been taken off. Your total is updated, tap Pay to continue.' }, 409);
 
   return json({
     ok: true, ref,
     razorpay: { key: env.razorpayKeyId(), orderId: rzp.id, amount: rzp.amount, currency: rzp.currency },
-    totals: { subtotal: priced.subtotal, deliveryFee: fee, total, distanceKm },
+    totals: { subtotal: priced.subtotal, discount, deliveryFee: fee, total, distanceKm },
     prefill: { name, email, contact: phone },
   });
 }

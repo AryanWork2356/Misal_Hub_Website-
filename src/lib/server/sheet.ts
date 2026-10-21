@@ -28,3 +28,21 @@ export async function notifySheet(payload: Record<string, unknown>): Promise<boo
     return false;
   }
 }
+
+/** Like notifySheet, but returns the script's JSON answer (or null when it could not be reached). */
+export async function callSheet(payload: Record<string, unknown>): Promise<{ ok?: boolean; error?: string; used?: boolean } | null> {
+  const url = env.appsScriptUrl();
+  if (!url) return null;
+  try {
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({ ...payload, secret: env.appsScriptSecret() }),
+      redirect: 'follow', cache: 'no-store', signal: AbortSignal.timeout(15000),
+    });
+    return JSON.parse(await res.text());
+  } catch (e) {
+    console.error('[sheet] request failed', payload.action, (e as Error).message);
+    return null;
+  }
+}

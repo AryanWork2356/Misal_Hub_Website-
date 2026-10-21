@@ -17,7 +17,8 @@ const ok = (name, cond, extra = '') => { cond ? pass++ : fail++; console.log(`${
 
 /* ---------- stand-ins ---------- */
 const rzpOrders = [];           // what our server asked Razorpay to create
-const sheetEvents = [];         // what our server sent to the Apps Script
+const sheetEvents = [];
+const promoUsed = new Set();    // stand-in for the Sheet: phone|code already used         // what our server sent to the Apps Script
 const mk = (handler, port) => new Promise((res) => { const s = http.createServer(handler).listen(port, '127.0.0.1', () => res(s)); });
 const readBody = (req) => new Promise((r) => { let b = ''; req.on('data', (c) => (b += c)); req.on('end', () => r(b)); });
 
@@ -32,6 +33,13 @@ const rzp = await mk(async (req, res) => {
 const script = await mk(async (req, res) => {
   const body = JSON.parse((await readBody(req)) || '{}');
   if (body.secret !== SCRIPT_SECRET) { res.writeHead(200); return res.end('{"ok":false,"error":"unauthorized"}'); }
+  res.setHeader('Content-Type', 'application/json');
+  if (body.action === 'promo_check') return res.end(JSON.stringify({ ok: true, used: promoUsed.has(`${body.phone}|${body.code}`) }));
+  if (body.action === 'order_created' && body.promo) {
+    const k = `${body.customer.phone}|${body.promo}`;
+    if (promoUsed.has(k)) return res.end('{"ok":false,"error":"promo_used"}');
+    promoUsed.add(k);
+  }
   sheetEvents.push(body);
   res.writeHead(200, { 'Content-Type': 'application/json' }); res.end('{"ok":true}');
 }, 4011);
@@ -62,8 +70,9 @@ const C = startServer(3202, { ...FULL, ORDERS_IGNORE_HOURS: '' });              
 const D = startServer(3203, { RAZORPAY_KEY_ID: '', RAZORPAY_KEY_SECRET: '', APPS_SCRIPT_URL: 'http://127.0.0.1:4011/exec', APPS_SCRIPT_SECRET: SCRIPT_SECRET, ORDERS_TEST_MODE: '1', ORDERS_IGNORE_HOURS: '' }); // TEST MODE: no payment keys
 const E = startServer(3204, { ...FULL, ORDERS_TEST_MODE: '1' });                      // TEST MODE flag set but real keys present
 const F = startServer(3205, { ...FULL, ORDERS_DELIVERY_PAUSED: '1' });                // owner paused delivery (Vercel override)
+const H = startServer(3207, FULL);                                                     // promo-code tests (own server: separate rate limit)
 const G = startServer(3206, { ...FULL, APPS_SCRIPT_URL: 'http://127.0.0.1:4012/exec' }); // owner paused pickup via the Sheet's Settings tab
-await Promise.all([waitFor(3200), waitFor(3201), waitFor(3202), waitFor(3203), waitFor(3204), waitFor(3205), waitFor(3206)]);
+await Promise.all([waitFor(3200), waitFor(3201), waitFor(3202), waitFor(3203), waitFor(3204), waitFor(3205), waitFor(3206), waitFor(3207)]);
 
 const post = async (port, url, body, headers = {}) => {
   const r = await fetch(`http://127.0.0.1:${port}${url}`, { method: 'POST', headers: { 'Content-Type': 'application/json', ...headers }, body: typeof body === 'string' ? body : JSON.stringify(body) });
@@ -173,6 +182,36 @@ try {
   r = await post(3204, '/api/checkout/create', { items: [{ id: 'misal-pav', mode: 'regular', qty: 1 }], customer, type: 'Pickup' });
   ok('test mode flag can NEVER bypass payment once real Razorpay keys exist', r.json.ok && !r.json.demo && r.json.razorpay?.orderId);
 
+  /* ----- promo code: 10% off, once per phone number ----- */
+  const P1 = { ...customer, phone: '9811111111' }, P2 = { ...customer, phone: '9822222222' };
+  const misal = [{ id: 'misal-pav', mode: 'regular', qty: 1 }];
+  let before2 = rzpOrders.length;
+  r = await post(3207, '/api/checkout/create', { items: misal, customer: P1, type: 'Pickup', promo: 'misal10', src: 'card' });
+  const pe = sheetEvents.filter((e) => e.action === 'order_created').at(-1);
+  ok('promo: first use -> ₹9 off ₹90 (total ₹81), Razorpay is asked for ₹81', r.json.ok && r.json.totals.discount === 9 && r.json.totals.total === 81 && rzpOrders.at(-1).amount === 8100, JSON.stringify(r.json.totals));
+  ok('promo: the Sheet row carries the code, discount and where it came from (card)', pe && pe.promo === 'MISAL10' && pe.discount === 9 && pe.source === 'card' && pe.total === 81);
+  before2 = rzpOrders.length;
+  r = await post(3207, '/api/checkout/create', { items: misal, customer: P1, type: 'Pickup', promo: 'MISAL10' });
+  ok('promo: SAME phone again -> offer removed (409 promo_used, friendly message), no payment order created', r.status === 409 && r.json.code === 'promo_used' && rzpOrders.length === before2, r.json.error);
+  r = await post(3207, '/api/checkout/create', { items: misal, customer: P1, type: 'Pickup' });
+  ok('promo: same phone can still order at the normal price (₹90)', r.json.ok && r.json.totals.total === 90 && r.json.totals.discount === 0);
+  r = await post(3207, '/api/checkout/create', { items: misal, customer: P2, type: 'Pickup', promo: 'MISAL10' });
+  ok('promo: a different phone gets the offer', r.json.ok && r.json.totals.discount === 9);
+  r = await post(3207, '/api/checkout/create', { items: [{ id: 'misal-thali', mode: 'regular', qty: 4 }], customer: { ...customer, phone: '9833333333' }, type: 'Pickup', promo: 'MISAL10' });
+  ok('promo: no cap, flat 10% on a big order (₹680 -> ₹68 off -> ₹612)', r.json.ok && r.json.totals.discount === 68 && r.json.totals.total === 612, JSON.stringify(r.json.totals));
+  r = await post(3207, '/api/checkout/create', { items: misal, customer: { ...customer, phone: '9844444444' }, type: 'Pickup', promo: 'FREE100' });
+  ok('promo: unknown code rejected (400)', r.status === 400 && !r.json.ok);
+  r = await post(3207, '/api/checkout/create', { items: misal, customer: P1, type: 'Pickup', promo: 'MISAL10', discount: 80, total: 1 });
+  ok('promo: browser cannot set its own discount/total (still refused for a used phone, ignored otherwise)', r.status === 409);
+  r = await post(3207, '/api/promo/check', { code: 'MISAL10', phone: '9855555555', subtotal: 200 });
+  ok('promo check: fresh phone -> ok', r.json.ok === true && r.json.code === 'MISAL10');
+  r = await post(3207, '/api/promo/check', { code: 'MISAL10', phone: '9811111111', subtotal: 200 });
+  ok('promo check: used phone -> 409 promo_used', r.status === 409 && r.json.code === 'promo_used');
+  r = await post(3207, '/api/promo/check', { code: 'MISAL10', subtotal: 200 });
+  ok('promo check: no phone -> asks for it (400)', r.status === 400);
+  r = await post(3207, '/api/promo/check', { code: 'NOPE', phone: '9855555555' });
+  ok('promo check: bad code -> 404', r.status === 404);
+
   /* ----- manual pause switch ----- */
   let st = await (await fetch('http://127.0.0.1:3200/api/status')).json();
   ok('status: everything on by default', st.delivery === true && st.pickup === true);
@@ -192,7 +231,7 @@ try {
   for (let i = 0; i < 8; i++) { const x = await post(3200, '/api/franchise', { ...app, phone: '123' }); if (x.status === 429) limited++; }
   ok('franchise endpoint is rate limited against abuse', limited > 0, `${limited} of 8 blocked`);
 } finally {
-  [A, B, C, D, E, F, G].forEach((p) => p.kill());
+  [A, B, C, D, E, F, G, H].forEach((p) => p.kill());
   rzp.close(); script.close(); scriptPaused.close();
 }
 console.log(`\n${pass}/${pass + fail} passed`);
