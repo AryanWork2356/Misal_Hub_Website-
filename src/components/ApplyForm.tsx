@@ -68,28 +68,6 @@ export default function ApplyForm() {
           <input name="city" type="text" placeholder="Your city" required />
         </div>
       </div>
-      <div className="form-row">
-        <div className="form-field">
-          <label>Preferred Date *</label>
-          <input name="date" type="date" required />
-        </div>
-        <div className="form-field">
-          <label>Calling Time *</label>
-          <div className="time-row">
-            <select name="hh" required defaultValue="">
-              <option value="" disabled>Hours</option>
-              {['09', '10', '11', '12', '01', '02', '03', '04', '05', '06'].map((h) => <option key={h}>{h}</option>)}
-            </select>
-            <select name="mm" required defaultValue="">
-              <option value="" disabled>Min</option>
-              {['00', '15', '30', '45'].map((m) => <option key={m}>{m}</option>)}
-            </select>
-            <select name="ap" defaultValue="AM">
-              <option>AM</option><option>PM</option>
-            </select>
-          </div>
-        </div>
-      </div>
       <div className="form-field">
         <label>Message (Optional)</label>
         <textarea name="message" rows={3} placeholder="Tell us about your location, experience or any questions..." />

@@ -142,11 +142,11 @@ try {
   ok('webhook: genuine event marks the order paid', r.json.ok && sheetEvents.some((e) => e.action === 'order_paid' && e.razorpayOrderId === 'order_WEBHOOK' && e.paymentId === 'pay_WH1'));
 
   /* ----- franchise application ----- */
-  const app = { name: 'Asha Test', phone: '9876543210', email: 'asha@example.com', city: 'Pune', date: '2026-11-05', hh: '11', mm: '30', ap: 'AM', message: 'Two outlets in Pune' };
+  const app = { name: 'Asha Test', phone: '9876543210', email: 'asha@example.com', city: 'Pune', message: 'Two outlets in Pune' };
   sheetEvents.length = 0;
   r = await post(3200, '/api/franchise', app);
   const fe = sheetEvents.find((e) => e.action === 'franchise');
-  ok('franchise: saved to the Sheet with every field', r.json.ok && fe && fe.city === 'Pune' && fe.callTime === '11:30 AM' && fe.email === 'asha@example.com' && fe.message === 'Two outlets in Pune');
+  ok('franchise: saved to the Sheet with every field', r.json.ok && fe && fe.city === 'Pune' && fe.email === 'asha@example.com' && fe.message === 'Two outlets in Pune');
   sheetEvents.length = 0;
   r = await post(3200, '/api/franchise', { ...app, website: 'http://spam.example' });
   ok('franchise: spam-trap (honeypot) filled -> silently dropped', r.json.ok && sheetEvents.length === 0);

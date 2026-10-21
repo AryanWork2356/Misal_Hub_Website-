@@ -27,7 +27,7 @@ var ORDERS = 'Orders';
 var FRANCHISE = 'Franchise Applications';
 var ORDER_HEADERS = ['Created', 'Order ref', 'Status', 'Razorpay order id', 'Payment id', 'Paid at', 'Name', 'Phone', 'Email',
   'Type', 'Address', 'Map link', 'Distance (km)', 'Items', 'Subtotal', 'Delivery fee', 'Total', 'Notes'];
-var FRANCHISE_HEADERS = ['Received', 'Name', 'Phone', 'Email', 'City', 'Preferred date', 'Preferred call time', 'Message'];
+var FRANCHISE_HEADERS = ['Received', 'Name', 'Phone', 'Email', 'City', 'Message'];
 
 function prop_(k) { return PropertiesService.getScriptProperties().getProperty(k) || ''; }
 function out_(o) { return ContentService.createTextOutput(JSON.stringify(o)).setMimeType(ContentService.MimeType.JSON); }
@@ -154,17 +154,16 @@ function orderPaid_(d) {
 
 function franchise_(d) {
   var sh = sheet_(FRANCHISE, FRANCHISE_HEADERS);
-  sh.appendRow([new Date(), cell_(d.name), cell_(d.phone), cell_(d.email), cell_(d.city), cell_(d.date), cell_(d.callTime), cell_(d.message)]);
+  sh.appendRow([new Date(), cell_(d.name), cell_(d.phone), cell_(d.email), cell_(d.city), cell_(d.message)]);
   MailApp.sendEmail({
     to: shopEmail_(), name: 'Misal Hub website', replyTo: d.email, subject: 'New franchise application: ' + d.name + ' (' + d.city + ')',
     htmlBody: '<h2>New franchise application</h2><p><b>' + esc_(d.name) + '</b> &middot; ' + esc_(d.phone) + ' &middot; ' + esc_(d.email) + '</p>' +
-      '<p>City: ' + esc_(d.city) + '<br>Preferred call: ' + esc_(d.date) + ' at ' + esc_(d.callTime) + '</p>' + (d.message ? '<p>' + esc_(d.message) + '</p>' : '')
+      '<p>City: ' + esc_(d.city) + '</p>' + (d.message ? '<p>' + esc_(d.message) + '</p>' : '')
   });
   if (d.email) {
     MailApp.sendEmail({
       to: d.email, name: 'Misal Hub', subject: 'We received your Misal Hub franchise application',
-      htmlBody: '<p>Hi ' + esc_(d.name) + ', thank you for your interest in a Misal Hub franchise. Our team will call you within 24 hours' +
-        (d.date ? ' (you asked for ' + esc_(d.date) + ' at ' + esc_(d.callTime) + ')' : '') + '.</p><p>Misal Hub &middot; +91 90041 67448</p>'
+      htmlBody: '<p>Hi ' + esc_(d.name) + ', thank you for your interest in a Misal Hub franchise. Our team will call you within 24 hours.</p><p>Misal Hub &middot; +91 90041 67448</p>'
     });
   }
   return { ok: true };

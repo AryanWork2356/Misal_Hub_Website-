@@ -24,8 +24,6 @@ export async function POST(req: Request) {
   const ok = await notifySheet({
     action: 'franchise',
     name, phone, email, city,
-    date: cleanText(b.date, 20),
-    callTime: `${cleanText(b.hh, 2)}:${cleanText(b.mm, 2)} ${cleanText(b.ap, 2)}`,
     message: cleanText(b.message, 1000),
   });
   if (!ok) return json({ ok: false, error: 'We could not save your application. Please try again or call us on +91 90041 67448.' }, 502);

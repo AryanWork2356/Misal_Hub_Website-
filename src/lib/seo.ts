@@ -216,7 +216,7 @@ export const FRANCHISE_FAQ: Faq[] = [
   },
   {
     q: 'How do I apply for a Misal Hub franchise?',
-    a: 'Fill in the application form on this page with your name, phone, email, city and a convenient time to talk. Our team will call you within 24 hours to discuss the next steps.',
+    a: 'Fill in the application form on this page with your name, phone, email and city (and a short message if you like). Our team will call you within 24 hours to discuss the next steps.',
   },
   {
     q: 'Which cities can I open a Misal Hub in?',
