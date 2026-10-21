@@ -4,6 +4,7 @@ import { env, paymentsConfigured } from '@/lib/server/env';
 import { cleanPhone, cleanText, clientIp, isEmail, json, rateLimit } from '@/lib/server/guard';
 import { createRazorpayOrder } from '@/lib/server/razorpay';
 import { notifySheet } from '@/lib/server/sheet';
+import { getOrderStatus } from '@/lib/server/status';
 
 const makeRef = () => {
   const d = new Date();
@@ -29,6 +30,11 @@ export async function POST(req: Request) {
 
   if (!demo && !env.ignoreHours() && !isOpenNow()) return json({ ok: false, code: 'closed', error: 'We are closed right now. Orders are open from 8 AM to 8 PM — please come back then.' }, 409);
 
+  const status = await getOrderStatus();
+  const wantsDelivery = b.type !== 'Pickup';
+  if (wantsDelivery && !status.delivery) return json({ ok: false, code: 'paused', error: `Delivery is paused right now.${status.message ? ' ' + status.message : ''}${status.pickup ? ' You can still choose Pickup.' : ''}` }, 409);
+  if (!wantsDelivery && !status.pickup) return json({ ok: false, code: 'paused', error: `Pickup orders are paused right now.${status.message ? ' ' + status.message : ''}` }, 409);
+
   const priced = priceCart(b.items);
   if (!priced.ok) return json({ ok: false, error: priced.error }, 400);
 
@@ -52,7 +58,7 @@ export async function POST(req: Request) {
     if (lat == null || lng == null || Math.abs(lat) > 90 || Math.abs(lng) > 180) return json({ ok: false, error: 'Please check your delivery address first so we can work out the delivery charge.' }, 400);
     try {
       const { km } = await drivingKm({ lat, lng });
-      const q = deliveryQuote(km, priced.subtotal);
+      const q = deliveryQuote(km);
       if (!q.deliverable) return json({ ok: false, error: q.message }, 422);
       distanceKm = q.distanceKm; fee = q.fee;
     } catch {

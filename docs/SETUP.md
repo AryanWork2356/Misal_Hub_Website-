@@ -76,8 +76,8 @@ The built-in default is already the shop's real Google Maps pin (`19.274968, 72.
 
 ## Decisions to confirm
 
-* **Delivery rules in force:** free up to 1.5 km (inclusive) on orders **above ₹250**; otherwise distance × ₹4 with a **₹30 minimum** (so everything up to 7.5 km pays ₹30); no delivery beyond 10 km. An order of ₹250 or less within 1.5 km therefore also pays the ₹30 minimum. Change any number in `DELIVERY` in `src/lib/pricing.ts`.
-* **Fee rounding:** distance is rounded to 0.1 km, then distance × ₹4 is rounded to the nearest rupee, then the ₹30 minimum applies.
+* **Delivery rules in force:** **₹50** up to 1 km (inclusive), **₹80** beyond 1 km, **no delivery beyond 5 km**. There is no free delivery. An order of ₹250 or less within 1.5 km therefore also pays the ₹30 minimum. Change any number in `DELIVERY` in `src/lib/pricing.ts`.
+* **Fee rounding:** distance is rounded to 0.1 km first (1.04 km = 1.0 km = ₹50, 1.06 km = 1.1 km = ₹80).
 * **Distance is by road** (what the rider rides), not a straight line.
 * **No GST / packaging charge** is added. Prices are exactly the menu prices.
 * **Hours:** orders accepted 8 AM – 8 PM India time; outside that the checkout is blocked with a message.
@@ -91,3 +91,10 @@ The built-in default is already the shop's real Google Maps pin (`19.274968, 72.
 Set `ORDERS_TEST_MODE` = `1` in Vercel and redeploy. While the Razorpay keys are **not** set, checkout then skips payment and writes the order to the Sheet
 (and sends the shop e-mail) marked **TEST-** in the order reference and "TEST ORDER - no payment was taken" in Notes. It also ignores opening hours.
 Once real Razorpay keys exist the flag does nothing (payment is always required), but **delete the variable before launch**.
+
+## Pausing delivery / pickup for a day (manual switch)
+
+Open the Google Sheet -> tab **Settings** (created automatically the first time the new script runs `selfTest`).
+Change **Delivery** and/or **Pickup** from YES to NO (dropdown), optionally type a **Message** (for example "Closed today for a family function"). The website picks it up within about a minute:
+the Deliver Now button turns red, the checkout blocks that option, and customers see the message. Change it back to YES to reopen.
+Emergency alternative without the Sheet: set `ORDERS_DELIVERY_PAUSED=1` (or `ORDERS_PICKUP_PAUSED=1`) in Vercel and redeploy.

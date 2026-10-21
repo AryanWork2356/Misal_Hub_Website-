@@ -5,6 +5,7 @@ import { BESTSELLERS, MENU, type Item } from '@/data/menu';
 import { getLenis } from '@/lib/lenis';
 import { cartServerSnapshot, cartSnapshot, parseCart, subscribeCart, writeCart, type Cart } from '@/lib/cart';
 import { DELIVERY, SHOP, deliveryQuote, hasModePrice, isOpenNow, rupee, unitPrice, type Mode } from '@/lib/pricing';
+import { useOrderStatus } from '@/lib/useOrderStatus';
 
 type Line = { key: string; it: Item; m: Mode; qty: number; price: number };
 type Step = 'cart' | 'details' | 'success';
@@ -79,6 +80,7 @@ export default function MenuApp() {
   const cartJson = useSyncExternalStore(subscribeCart, cartSnapshot, cartServerSnapshot);
   const cart = useMemo(() => parseCart(cartJson), [cartJson]);
   const open = useSyncExternalStore(subscribeMinute, () => isOpenNow(), () => true);
+  const ost = useOrderStatus();   // owner's manual delivery / pickup switch
 
   const [drawer, setDrawer] = useState(false);
   const [step, setStep] = useState<Step>('cart');
@@ -133,15 +135,14 @@ export default function MenuApp() {
   }, [cart]);
 
   /* delivery fee follows the cart total live (distance comes from the one address check) */
-  const dq = type === 'Delivery' && quote ? deliveryQuote(quote.distanceKm, sum) : null;
+  const dq = type === 'Delivery' && quote ? deliveryQuote(quote.distanceKm) : null;
   const fee = dq && dq.deliverable ? dq.fee : 0;
   const total = sum + fee;
-  const canPay = open && count > 0 && !paying && (type === 'Pickup' || (!!dq && dq.deliverable));
+  const typeOn = type === 'Delivery' ? ost.delivery : ost.pickup;
+  const canPay = open && typeOn && count > 0 && !paying && (type === 'Pickup' || (!!dq && dq.deliverable));
 
-  const toFree = Math.max(0, DELIVERY.freeMinOrder + 1 - sum);
-  const pct = Math.min(100, Math.round((sum / (DELIVERY.freeMinOrder + 1)) * 100));
-  /* the free-delivery meter only matters for delivery orders inside the free radius */
-  const showMeter = count > 0 && type === 'Delivery' && !(quote && quote.distanceKm > DELIVERY.freeRadiusKm);
+  /* if the owner pauses delivery, switch the customer to Pickup (when that is still on) */
+  useEffect(() => { if (!ost.delivery && ost.pickup && type === 'Delivery') setType('Pickup'); }, [ost.delivery, ost.pickup, type]);
 
   /* ---------- active category tab ---------- */
   useEffect(() => {
@@ -349,8 +350,10 @@ export default function MenuApp() {
           </div>
           <p className="om-jain-note" hidden={mode !== 'jain'}>Jain menu: prepared without onion, garlic or root vegetables. Prices differ from the regular menu.</p>
           <p className="om-delivery-note">
-            Free delivery within {DELIVERY.freeRadiusKm} km on orders above ₹{DELIVERY.freeMinOrder}. Beyond that ₹{DELIVERY.perKm} per km (minimum ₹{DELIVERY.minFee}), up to {DELIVERY.maxKm} km.
+            Delivery ₹{DELIVERY.nearFee} up to {DELIVERY.nearKm} km, ₹{DELIVERY.farFee} beyond that — we deliver up to {DELIVERY.maxKm} km.
             {!open && <strong> We are closed right now — orders reopen at 8 AM.</strong>}
+            {open && !ost.delivery && <strong> Delivery is paused right now{ost.message ? ` — ${ost.message}` : ''}.{ost.pickup ? ' Pickup is still available.' : ' Orders are paused.'}</strong>}
+            {open && ost.delivery && !ost.pickup && <strong> Pickup is paused right now{ost.message ? ` — ${ost.message}` : ''}.</strong>}
           </p>
         </div>
       </header>
@@ -498,16 +501,6 @@ export default function MenuApp() {
                     {confirmClear ? 'Tap again to clear' : 'Clear cart'}
                   </button>
                 </div>
-                {showMeter && (
-                  <div className={`meter${toFree === 0 ? ' done' : ''}`}>
-                    <div className="meter-text">
-                      {toFree > 0
-                        ? <>Add <b>₹{toFree}</b> more for <b>free delivery</b> <span>within {DELIVERY.freeRadiusKm} km</span></>
-                        : <><b>Free delivery unlocked</b> <span>within {DELIVERY.freeRadiusKm} km</span></>}
-                    </div>
-                    <div className="meter-bar"><i style={{ width: `${pct}%` }} /></div>
-                  </div>
-                )}
 
                 <div className="cart-lines">
                   {lines.map((l, i) => (
@@ -545,15 +538,6 @@ export default function MenuApp() {
           <form id="checkoutForm" ref={formRef} className="order-form" hidden={step !== 'details'} noValidate onSubmit={(e) => { e.preventDefault(); pay(); }}>
             <button type="button" className="cd-back" onClick={() => setStep('cart')}>← Back to your order</button>
 
-            {showMeter && type === 'Delivery' && (
-              <div className={`meter${toFree === 0 ? ' done' : ''}`}>
-                <div className="meter-text">
-                  {toFree > 0 ? <>Add <b>₹{toFree}</b> more for <b>free delivery</b> <span>within {DELIVERY.freeRadiusKm} km</span></> : <><b>Free delivery unlocked</b> <span>within {DELIVERY.freeRadiusKm} km</span></>}
-                </div>
-                <div className="meter-bar"><i style={{ width: `${pct}%` }} /></div>
-              </div>
-            )}
-
             <h3>Contact</h3>
             <label>Name<input name="name" type="text" autoComplete="name" required placeholder="Your name" /></label>
             <label>Phone number<input name="phone" type="tel" inputMode="numeric" autoComplete="tel" required placeholder="10-digit mobile number" /></label>
@@ -562,14 +546,14 @@ export default function MenuApp() {
             <h3>How would you like it?</h3>
             <div className="otype" role="radiogroup" aria-label="Order type">
               <label className={`otype-card${type === 'Delivery' ? ' on' : ''}`}>
-                <input type="radio" name="type" value="Delivery" checked={type === 'Delivery'} onChange={() => setType('Delivery')} />
+                <input type="radio" name="type" value="Delivery" checked={type === 'Delivery'} disabled={!ost.delivery} onChange={() => setType('Delivery')} />
                 <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s-7-6.2-7-11a7 7 0 1 1 14 0c0 4.8-7 11-7 11z" /><circle cx="12" cy="10" r="2.5" /></svg>
-                <b>Delivery</b><small>To your door</small>
+                <b>Delivery</b><small>{ost.delivery ? 'To your door' : 'Paused today'}</small>
               </label>
               <label className={`otype-card${type === 'Pickup' ? ' on' : ''}`}>
-                <input type="radio" name="type" value="Pickup" checked={type === 'Pickup'} onChange={() => setType('Pickup')} />
+                <input type="radio" name="type" value="Pickup" checked={type === 'Pickup'} disabled={!ost.pickup} onChange={() => setType('Pickup')} />
                 <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 8h12l-1 12H7L6 8z" /><path d="M9 8V6a3 3 0 0 1 6 0v2" /></svg>
-                <b>Pickup</b><small>From our shop</small>
+                <b>Pickup</b><small>{ost.pickup ? 'From our shop' : 'Paused today'}</small>
               </label>
             </div>
 
@@ -617,7 +601,7 @@ export default function MenuApp() {
               <>
                 <div className="sum">
                   <div><span>Subtotal</span><b>{rupee(sum)}</b></div>
-                  <div><span>Delivery</span><b>{type === 'Pickup' ? '—' : dq?.deliverable ? (dq.free ? 'Free' : rupee(dq.fee)) : 'Check address'}</b></div>
+                  <div><span>Delivery</span><b>{type === 'Pickup' ? '—' : dq?.deliverable ? rupee(dq.fee) : 'Check address'}</b></div>
                   <div className="sum-total"><span>Total</span><b>{rupee(total)}</b></div>
                 </div>
                 {error && <p className="form-error" role="alert">{error}</p>}

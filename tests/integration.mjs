@@ -36,6 +36,11 @@ const script = await mk(async (req, res) => {
   res.writeHead(200, { 'Content-Type': 'application/json' }); res.end('{"ok":true}');
 }, 4011);
 
+const scriptPaused = await mk((req, res) => {   // a Sheet whose Settings tab says: Pickup = NO, message set
+  res.writeHead(200, { 'Content-Type': 'application/json' });
+  res.end(JSON.stringify(req.url.includes(`secret=${SCRIPT_SECRET}`) ? { ok: true, delivery: 'YES', pickup: 'NO', message: 'Closed today' } : { ok: false, error: 'unauthorized' }));
+}, 4012);
+
 /* ---------- real server ---------- */
 function startServer(port, env) {
   const p = spawn(process.execPath, [path.join(root, 'node_modules/next/dist/bin/next'), 'start', '-p', String(port)], {
@@ -56,7 +61,9 @@ const B = startServer(3201, { RAZORPAY_KEY_ID: '', RAZORPAY_KEY_SECRET: '', APPS
 const C = startServer(3202, { ...FULL, ORDERS_IGNORE_HOURS: '' });                    // real opening hours enforced
 const D = startServer(3203, { RAZORPAY_KEY_ID: '', RAZORPAY_KEY_SECRET: '', APPS_SCRIPT_URL: 'http://127.0.0.1:4011/exec', APPS_SCRIPT_SECRET: SCRIPT_SECRET, ORDERS_TEST_MODE: '1', ORDERS_IGNORE_HOURS: '' }); // TEST MODE: no payment keys
 const E = startServer(3204, { ...FULL, ORDERS_TEST_MODE: '1' });                      // TEST MODE flag set but real keys present
-await Promise.all([waitFor(3200), waitFor(3201), waitFor(3202), waitFor(3203), waitFor(3204)]);
+const F = startServer(3205, { ...FULL, ORDERS_DELIVERY_PAUSED: '1' });                // owner paused delivery (Vercel override)
+const G = startServer(3206, { ...FULL, APPS_SCRIPT_URL: 'http://127.0.0.1:4012/exec' }); // owner paused pickup via the Sheet's Settings tab
+await Promise.all([waitFor(3200), waitFor(3201), waitFor(3202), waitFor(3203), waitFor(3204), waitFor(3205), waitFor(3206)]);
 
 const post = async (port, url, body, headers = {}) => {
   const r = await fetch(`http://127.0.0.1:${port}${url}`, { method: 'POST', headers: { 'Content-Type': 'application/json', ...headers }, body: typeof body === 'string' ? body : JSON.stringify(body) });
@@ -64,18 +71,18 @@ const post = async (port, url, body, headers = {}) => {
 };
 const customer = { name: 'Asha Test', phone: '+91 98765 43210', email: 'asha@example.com' };
 const NEAR = { lat: 19.2933, lng: 72.85905 };   // ~0.5 km north of the shop
-const MID = { lat: 19.2700, lng: 72.8900 };     // Ghodbunder Road: about 5 km by road
+const MID = { lat: 19.3092, lng: 72.85905 };    // ~2.2 km north (a few km by road)
 const FAR = { lat: 19.4692, lng: 72.85905 };    // ~20 km north
 const near = async (extra) => (await post(3200, '/api/delivery/quote', { ...NEAR, ...extra })).json;
 
 try {
   /* ----- delivery quotes (distance comes from the routing service; fee rules are checked exactly in the unit tests) ----- */
   let q = await near({ subtotal: 300 });
-  ok('quote: ~0.5 km, order ₹300 (above ₹250) -> free delivery', q.ok && q.deliverable && q.free && q.fee === 0, `${q.distanceKm} km via ${q.source}`);
+  ok('quote: ~0.5 km -> ₹50 (up to 1 km)', q.ok && q.deliverable && q.fee === 50 && q.distanceKm <= 1, `${q.distanceKm} km via ${q.source}`);
   q = await near({ subtotal: 100 });
-  ok('quote: ~0.5 km, order ₹100 -> pays the ₹30 minimum (not free)', q.ok && !q.free && q.fee === 30, `fee ₹${q.fee}`);
+  ok('quote: ~0.5 km, small order -> still ₹50 (no free delivery)', q.ok && q.fee === 50, `fee ₹${q.fee}`);
   q = (await post(3200, '/api/delivery/quote', { ...MID, subtotal: 500 })).json;
-  ok('quote: ~5 km -> never free, ₹4/km with the ₹30 minimum', q.ok && q.deliverable && !q.free && q.fee === Math.max(30, Math.round(q.distanceKm * 4)) && q.distanceKm >= 4 && q.distanceKm <= 8, `${q.distanceKm} km -> ₹${q.fee}`);
+  ok('quote: a few km out -> ₹80 (beyond 1 km, within 5 km)', q.ok && q.deliverable && q.fee === 80 && q.distanceKm > 1 && q.distanceKm <= 5, `${q.distanceKm} km -> ₹${q.fee}`);
   q = (await post(3200, '/api/delivery/quote', { ...FAR, subtotal: 500 })).json;
   ok('quote: ~20 km -> not deliverable', q.ok && q.deliverable === false, q.message);
   const real = (await post(3200, '/api/delivery/quote', { address: 'A/504 , Ankur Enclave , Vijay Park , Opp Tokyo Tower , Near GN Residency .', subtotal: 300 })).json;
@@ -90,13 +97,13 @@ try {
   ok('create: Razorpay key id (never the secret) is returned', r.json.razorpay.key === 'rzp_test_key' && !JSON.stringify(r.json).includes(SECRET));
 
   r = await post(3200, '/api/checkout/create', { items: [{ id: 'misal-pav', mode: 'regular', qty: 1 }], customer, type: 'Delivery', address: 'Flat 4, Silver Cassia, Mira Road East', ...NEAR });
-  ok('create (delivery, ₹90 near): pays the ₹30 minimum', r.json.ok && r.json.totals.deliveryFee === 30 && r.json.totals.total === 120 && rzpOrders.at(-1).amount === (90 + r.json.totals.deliveryFee) * 100, JSON.stringify(r.json.totals));
+  ok('create (delivery, ₹90 near): pays the ₹50 delivery fee', r.json.ok && r.json.totals.deliveryFee === 50 && r.json.totals.total === 140 && rzpOrders.at(-1).amount === (90 + r.json.totals.deliveryFee) * 100, JSON.stringify(r.json.totals));
 
   r = await post(3200, '/api/checkout/create', { items: [{ id: 'misal-thali', mode: 'regular', qty: 2 }], customer, type: 'Delivery', address: 'Flat 4, Silver Cassia, Mira Road East', ...NEAR });
-  ok('create (delivery, ₹340 near): FREE delivery, total ₹340', r.json.ok && r.json.totals.deliveryFee === 0 && r.json.totals.total === 340, JSON.stringify(r.json.totals));
+  ok('create (delivery, ₹340 near): ₹50 delivery on top, total ₹390 (no free delivery)', r.json.ok && r.json.totals.deliveryFee === 50 && r.json.totals.total === 390, JSON.stringify(r.json.totals));
 
   r = await post(3200, '/api/checkout/create', { items: [{ id: 'misal-thali', mode: 'regular', qty: 1 }], customer, type: 'Delivery', address: 'Somewhere very far away 123', ...FAR });
-  ok('create: address beyond 10 km refused (422), no payment order made', r.status === 422 && !r.json.ok, r.json.error);
+  ok('create: address beyond 5 km refused (422), no payment order made', r.status === 422 && !r.json.ok, r.json.error);
   const before = rzpOrders.length;
   r = await post(3200, '/api/checkout/create', { items: [{ id: 'misal-thali', mode: 'regular', qty: 1 }], customer, type: 'Delivery', address: 'Flat 4, Silver Cassia, Mira Road East' });
   ok('create: delivery without a checked location refused (400)', r.status === 400 && rzpOrders.length === before);
@@ -166,13 +173,27 @@ try {
   r = await post(3204, '/api/checkout/create', { items: [{ id: 'misal-pav', mode: 'regular', qty: 1 }], customer, type: 'Pickup' });
   ok('test mode flag can NEVER bypass payment once real Razorpay keys exist', r.json.ok && !r.json.demo && r.json.razorpay?.orderId);
 
+  /* ----- manual pause switch ----- */
+  let st = await (await fetch('http://127.0.0.1:3200/api/status')).json();
+  ok('status: everything on by default', st.delivery === true && st.pickup === true);
+  r = await post(3205, '/api/checkout/create', { items: [{ id: 'misal-pav', mode: 'regular', qty: 1 }], customer, type: 'Delivery', address: 'Flat 4, Silver Cassia, Mira Road East', ...NEAR });
+  ok('delivery paused -> delivery order refused (409 paused), no payment order made', r.status === 409 && r.json.code === 'paused' && /paused/i.test(r.json.error) && /Pickup/.test(r.json.error));
+  r = await post(3205, '/api/checkout/create', { items: [{ id: 'misal-pav', mode: 'regular', qty: 1 }], customer, type: 'Pickup' });
+  ok('delivery paused -> pickup still works', r.json.ok === true);
+  st = await (await fetch('http://127.0.0.1:3205/api/status')).json();
+  ok('status endpoint reports delivery paused', st.delivery === false && st.pickup === true);
+  st = await (await fetch('http://127.0.0.1:3206/api/status')).json();
+  ok('Sheet Settings (Pickup = NO, message) is read by the website', st.pickup === false && st.delivery === true && st.message === 'Closed today', JSON.stringify(st));
+  r = await post(3206, '/api/checkout/create', { items: [{ id: 'misal-pav', mode: 'regular', qty: 1 }], customer, type: 'Pickup' });
+  ok('pickup paused in the Sheet -> pickup order refused with the owner message', r.status === 409 && r.json.code === 'paused' && /Closed today/.test(r.json.error));
+
   /* ----- rate limiting ----- */
   let limited = 0;
   for (let i = 0; i < 8; i++) { const x = await post(3200, '/api/franchise', { ...app, phone: '123' }); if (x.status === 429) limited++; }
   ok('franchise endpoint is rate limited against abuse', limited > 0, `${limited} of 8 blocked`);
 } finally {
-  [A, B, C, D, E].forEach((p) => p.kill());
-  rzp.close(); script.close();
+  [A, B, C, D, E, F, G].forEach((p) => p.kill());
+  rzp.close(); script.close(); scriptPaused.close();
 }
 console.log(`\n${pass}/${pass + fail} passed`);
 process.exit(fail ? 1 : 0);

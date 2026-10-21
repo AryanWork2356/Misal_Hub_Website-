@@ -185,7 +185,7 @@ export const HOME_FAQ: Faq[] = [
   },
   {
     q: 'Do you offer home delivery in Mira Road and Bhayandar?',
-    a: 'Yes. You can order straight from this website. Delivery within 1.5 km is free on orders above ₹250. Otherwise the fee is ₹4 per km with a minimum of ₹30, and we deliver up to 10 km from the shop. Payment is online only (no cash on delivery).',
+    a: 'Yes. You can order straight from this website. Delivery costs ₹50 for addresses up to 1 km from the shop and ₹80 beyond that, and we deliver up to 5 km. On some days delivery may be paused, and the website will say so. Payment is online only (no cash on delivery).',
   },
   {
     q: 'What is Misal Pav and what makes yours special?',

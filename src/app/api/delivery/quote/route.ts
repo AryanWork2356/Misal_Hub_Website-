@@ -34,7 +34,7 @@ export async function POST(req: Request) {
       label = g.approx ? g.matched : g.label; // when only the neighbourhood matched, show that instead of an unrelated place name
     }
     const { km, source } = await drivingKm({ lat: lat as number, lng: lng as number });
-    const q = deliveryQuote(km, subtotal);
+    const q = deliveryQuote(km);
     return json({ ok: true, ...q, lat, lng, label, source, approx });
   } catch (e) {
     console.error('[quote]', (e as Error).message);

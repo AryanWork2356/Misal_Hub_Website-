@@ -2,6 +2,7 @@
 import Link from 'next/link';
 import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { OpenLive, useIsOpen } from './OpenLive';
+import { useOrderStatus } from '@/lib/useOrderStatus';
 import { getLenis } from '@/lib/lenis';
 import { cartServerSnapshot, cartSnapshot, parseCart, subscribeCart } from '@/lib/cart';
 import { SHOP } from '@/lib/pricing';
@@ -22,7 +23,9 @@ export default function Navbar({ active, home = false, applyAnchor = false }: { 
   const [scrolled, setScrolled] = useState(false);
   const navRef = useRef<HTMLElement>(null);
   const isOpen = useIsOpen();
-  const state = isOpen ? 's-open' : 's-closed';   // green glow while open, red while closed
+  const ost = useOrderStatus();                      // owner's manual switch
+  const accepting = isOpen && (ost.delivery || ost.pickup);
+  const state = accepting ? 's-open' : 's-closed';   // green glow while taking orders, red while not
 
   const cartJson = useSyncExternalStore(subscribeCart, cartSnapshot, cartServerSnapshot);
   const cartCount = Object.values(parseCart(cartJson)).reduce((a, n) => a + (Number(n) || 0), 0);
@@ -106,7 +109,7 @@ export default function Navbar({ active, home = false, applyAnchor = false }: { 
                 </button>
               )
             ) : (
-              <Link href="/menu" className={`deliver-btn ${state}`} title={isOpen ? undefined : "We are closed right now — open 8 AM to 8 PM"}><i /> Deliver Now <span aria-hidden="true">→</span></Link>
+              <Link href="/menu" className={`deliver-btn ${state}`} title={accepting ? undefined : (isOpen ? `Orders are paused right now${ost.message ? ' — ' + ost.message : ''}` : 'We are closed right now — open 8 AM to 8 PM')}><i /> Deliver Now <span aria-hidden="true">→</span></Link>
             )}
           </li>
         </ul>

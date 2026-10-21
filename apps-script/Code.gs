@@ -11,6 +11,10 @@
  *   4. In Vercel (or .env.local) set  APPS_SCRIPT_URL = that URL   and   APPS_SCRIPT_SECRET = the SECRET from step 2.
  *   5. Run the function  selfTest  once from the editor (Run button) to check the Sheet and e-mail work.
  *
+ * MANUAL SWITCH (pause delivery / pickup for a day): the "Settings" tab of this Sheet.
+ *   Delivery = YES / NO, Pickup = YES / NO, Message = text shown to customers. The website reads it about once a minute.
+ *   (The tab is created by selfTest; after pasting a new version of this script: Deploy -> Manage deployments -> pencil -> Version: New version -> Deploy.)
+ *
  * Events handled (JSON body, always includes "secret"):
  *   order_created  -> new row, status "Awaiting payment"            (no e-mail yet)
  *   order_paid     -> row becomes "Paid", e-mail to the shop + receipt to the customer (only the first time)
@@ -41,6 +45,42 @@ function sheet_(name, headers) {
     sh.setFrozenRows(1);
   }
   return sh;
+}
+
+var SETTINGS = 'Settings';
+
+/** Creates the Settings tab with YES/NO dropdowns the first time. */
+function settingsSheet_() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sh = ss.getSheetByName(SETTINGS);
+  if (!sh) {
+    sh = ss.insertSheet(SETTINGS, 0);
+    sh.getRange(1, 1, 4, 3).setValues([
+      ['Setting', 'Value', 'What it does'],
+      ['Delivery', 'YES', 'YES = customers can order delivery. NO = delivery paused (website blocks it).'],
+      ['Pickup', 'YES', 'YES = customers can order pickup. NO = pickup paused.'],
+      ['Message', '', 'Optional text shown to customers when something is paused (e.g. "Closed today, back tomorrow 8 AM").']
+    ]);
+    sh.getRange(1, 1, 1, 3).setFontWeight('bold').setBackground('#FFE0B8');
+    var rule = SpreadsheetApp.newDataValidation().requireValueInList(['YES', 'NO'], true).setAllowInvalid(false).build();
+    sh.getRange('B2:B3').setDataValidation(rule).setFontWeight('bold').setHorizontalAlignment('center');
+    sh.setColumnWidth(1, 110); sh.setColumnWidth(2, 110); sh.setColumnWidth(3, 520);
+  }
+  return sh;
+}
+
+/** Website asks: GET <web app url>?action=status&secret=...  -> {ok, delivery, pickup, message} */
+function doGet(e) {
+  try {
+    var q = (e && e.parameter) || {};
+    if (!prop_('SECRET') || q.secret !== prop_('SECRET')) return out_({ ok: false, error: 'unauthorized' });
+    if (q.action !== 'status') return out_({ ok: false, error: 'unknown action' });
+    var v = settingsSheet_().getRange('B2:B4').getValues();
+    var yn = function (x) { return String(x).toUpperCase().trim() === 'NO' ? 'NO' : 'YES'; };
+    return out_({ ok: true, delivery: yn(v[0][0]), pickup: yn(v[1][0]), message: String(v[2][0] || '') });
+  } catch (err) {
+    return out_({ ok: false, error: String(err) });
+  }
 }
 
 function doPost(e) {
@@ -132,7 +172,7 @@ function franchise_(d) {
 
 /** Run once from the editor: creates the sheets and sends a test e-mail to NOTIFY_EMAIL. */
 function selfTest() {
-  sheet_(ORDERS, ORDER_HEADERS); sheet_(FRANCHISE, FRANCHISE_HEADERS);
+  sheet_(ORDERS, ORDER_HEADERS); sheet_(FRANCHISE, FRANCHISE_HEADERS); settingsSheet_();
   MailApp.sendEmail(shopEmail_(), 'Misal Hub website: test e-mail', 'If you can read this, order and franchise e-mails will reach you.');
-  Logger.log('OK - sheets created and test e-mail sent to ' + shopEmail_());
+  Logger.log('OK - sheets (Orders, Franchise Applications, Settings) created and test e-mail sent to ' + shopEmail_());
 }

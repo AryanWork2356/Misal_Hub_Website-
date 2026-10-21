@@ -1461,3 +1461,18 @@ html.lenis, html.lenis body { height: auto; }
   .pg-home .faq-item summary h3 { font-size: .95rem; }
   .pg-home .faq-item p { padding: 0 16px 16px; font-size: .92rem; }
 }
+
+/* ---------- policy pages + footer legal links ---------- */
+.pg-home .legal { max-width: 860px; margin: 0 auto; }
+.pg-home .legal-updated { font-size: .85rem; opacity: .7; margin-bottom: 26px; }
+.pg-home .legal-block { margin-bottom: 30px; }
+.pg-home .legal-block h2 { font: 700 1.25rem 'Playfair Display', serif; margin-bottom: 10px; color: #FF8A1F; }
+.pg-home .legal-block p { line-height: 1.8; margin: 0 0 10px; font-size: .97rem; }
+.pg-home .legal-block ul { margin: 0 0 6px 20px; display: grid; gap: 8px; }
+.pg-home .legal-block li { line-height: 1.75; font-size: .97rem; }
+.pg-home .legal-links { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 40px; padding-top: 24px; border-top: 1px solid rgba(255,138,31,.3); }
+.pg-home .legal-links a { padding: 9px 16px; border-radius: 50px; border: 1px solid rgba(255,138,31,.5); font-size: .85rem; text-decoration: none; transition: background .2s; }
+.pg-home .legal-links a:hover { background: rgba(255,138,31,.15); }
+.pg-home .footer-bottom { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+.pg-home .footer-legal { font-size: .8rem; line-height: 1.8; text-align: center; }
+.pg-home .footer-legal a { text-decoration: underline; }

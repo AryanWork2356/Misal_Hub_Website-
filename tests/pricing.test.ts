@@ -5,55 +5,41 @@ import { addressQueries } from '@/lib/addressQueries';
 import { verifyPaymentSignature, verifyWebhookSignature } from '@/lib/server/razorpay';
 import { MENU } from '@/data/menu';
 
-describe('delivery fee — the owner\'s rules (free to 1.5 km above ₹250, else ₹4/km, minimum ₹30)', () => {
+describe('delivery fee — the owner rules (₹50 up to 1 km, ₹80 beyond, nothing past 5 km)', () => {
   it('rules in code match what was agreed', () => {
-    expect(DELIVERY).toEqual({ freeRadiusKm: 1.5, freeMinOrder: 250, perKm: 4, minFee: 30, maxKm: 10 });
+    expect(DELIVERY).toEqual({ nearKm: 1, nearFee: 50, farFee: 80, maxKm: 5 });
   });
 
-  it('free up to 1.5 km (inclusive) when the order is above ₹250', () => {
-    expect(deliveryQuote(0.6, 300)).toMatchObject({ deliverable: true, fee: 0, free: true });
-    expect(deliveryQuote(1.5, 251)).toMatchObject({ fee: 0, free: true });
-    expect(deliveryQuote(0, 5000)).toMatchObject({ fee: 0, free: true });
+  it('up to 1 km (inclusive) costs ₹50', () => {
+    expect(deliveryQuote(0)).toMatchObject({ deliverable: true, fee: 50 });
+    expect(deliveryQuote(0.6)).toMatchObject({ deliverable: true, fee: 50 });
+    expect(deliveryQuote(1.0)).toMatchObject({ deliverable: true, fee: 50 });
   });
 
-  it('"above ₹250" means more than 250 — exactly ₹250 pays the minimum', () => {
-    const q = deliveryQuote(1.0, 250);
-    expect(q.free).toBe(false);
-    expect(q.fee).toBe(30);
+  it('beyond 1 km (up to 5 km) costs ₹80', () => {
+    expect(deliveryQuote(1.1)).toMatchObject({ deliverable: true, fee: 80 });
+    expect(deliveryQuote(3)).toMatchObject({ deliverable: true, fee: 80 });
+    expect(deliveryQuote(5)).toMatchObject({ deliverable: true, fee: 80 });
   });
 
-  it('short trips still pay the ₹30 minimum (e.g. 0.6 km x ₹4 = ₹2.4 -> ₹30)', () => {
-    expect(deliveryQuote(0.6, 120)).toMatchObject({ free: false, fee: 30 });
-    expect(deliveryQuote(2.0, 900)).toMatchObject({ free: false, fee: 30 });   // beyond 1.5 km even a big order pays
-  });
-
-  it('₹4 per km kicks in once it exceeds the minimum (7.5 km = ₹30 exactly)', () => {
-    expect(deliveryQuote(7.4, 400).fee).toBe(30);   // 29.6 -> 30
-    expect(deliveryQuote(7.5, 400).fee).toBe(30);   // 30.0
-    expect(deliveryQuote(8.0, 400).fee).toBe(32);
-    expect(deliveryQuote(9.0, 400).fee).toBe(36);
-    expect(deliveryQuote(10, 400).fee).toBe(40);
-  });
-
-  it('1.6 km is outside the free zone', () => {
-    expect(deliveryQuote(1.6, 999)).toMatchObject({ free: false, fee: 30 });
+  it('there is no free delivery, whatever the order size', () => {
+    expect(deliveryQuote(0.2).fee).toBeGreaterThan(0);
   });
 
   it('the fee uses the distance rounded to 0.1 km', () => {
-    expect(deliveryQuote(8.04, 500)).toMatchObject({ distanceKm: 8, fee: 32 });
-    expect(deliveryQuote(1.54, 500)).toMatchObject({ distanceKm: 1.5, free: true });   // rounds down into the free zone
-    expect(deliveryQuote(1.56, 500)).toMatchObject({ distanceKm: 1.6, free: false });
+    expect(deliveryQuote(1.04)).toMatchObject({ distanceKm: 1, fee: 50 });
+    expect(deliveryQuote(1.06)).toMatchObject({ distanceKm: 1.1, fee: 80 });
   });
 
-  it('beyond 10 km we do not deliver', () => {
-    expect(deliveryQuote(10.04, 500).deliverable).toBe(true);  // rounds to 10.0
-    expect(deliveryQuote(10.05, 500).deliverable).toBe(false); // rounds to 10.1
-    expect(deliveryQuote(25, 500)).toMatchObject({ deliverable: false, fee: 0 });
+  it('beyond 5 km we do not deliver', () => {
+    expect(deliveryQuote(5.04).deliverable).toBe(true);   // rounds to 5.0
+    expect(deliveryQuote(5.05).deliverable).toBe(false);  // rounds to 5.1
+    expect(deliveryQuote(25)).toMatchObject({ deliverable: false, fee: 0 });
   });
 
   it('rejects nonsense distances', () => {
-    expect(deliveryQuote(NaN, 200).deliverable).toBe(false);
-    expect(deliveryQuote(-1, 200).deliverable).toBe(false);
+    expect(deliveryQuote(NaN).deliverable).toBe(false);
+    expect(deliveryQuote(-1).deliverable).toBe(false);
   });
 });
 

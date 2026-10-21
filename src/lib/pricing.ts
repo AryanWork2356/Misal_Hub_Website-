@@ -20,16 +20,14 @@ export const SHOP = {
 
 /** Delivery rules (set by the owner). */
 export const DELIVERY = {
-  /** up to this distance (inclusive) AND order above freeMinOrder -> no delivery fee */
-  freeRadiusKm: 1.5,
-  /** "above ₹250" — the subtotal must be MORE than this */
-  freeMinOrder: 250,
-  /** otherwise: distance (km) x this = fee (₹) ... */
-  perKm: 4,
-  /** ... but never less than this */
-  minFee: 30,
+  /** up to this distance (inclusive) the "near" fee applies */
+  nearKm: 1,
+  /** fee (₹) up to nearKm */
+  nearFee: 50,
+  /** fee (₹) beyond nearKm, up to maxKm */
+  farFee: 80,
   /** farther than this -> we do not deliver */
-  maxKm: 10,
+  maxKm: 5,
 } as const;
 
 export { HOURS, isOpenNow } from './hours';
@@ -71,34 +69,25 @@ export type DeliveryQuote = {
   /** driving distance, rounded to 0.1 km (this rounded value is what the fee is based on) */
   distanceKm: number;
   fee: number;
-  free: boolean;
   message: string;
 };
 
 /**
- * Owner's rules:
- *  - up to 1.5 km and order above ₹250  -> free
- *  - otherwise up to 10 km              -> distance x ₹4 per km, minimum ₹30 (3 km -> ₹30, 9 km -> ₹36)
- *  - beyond 10 km                       -> not deliverable
- * (So an order of ₹250 or less within 1.5 km pays the ₹30 minimum — see docs/SETUP.md "Decisions to confirm".)
+ * Owner's rules (flat fee, no free delivery):
+ *  - up to 1 km (inclusive) -> ₹50
+ *  - over 1 km, up to 5 km  -> ₹80
+ *  - beyond 5 km            -> not deliverable
  */
-export function deliveryQuote(rawKm: number, subtotal: number): DeliveryQuote {
+export function deliveryQuote(rawKm: number): DeliveryQuote {
   const distanceKm = Math.round(rawKm * 10) / 10;
   if (!Number.isFinite(distanceKm) || distanceKm < 0) {
-    return { deliverable: false, distanceKm: 0, fee: 0, free: false, message: 'We could not work out the distance to your address.' };
+    return { deliverable: false, distanceKm: 0, fee: 0, message: 'We could not work out the distance to your address.' };
   }
   if (distanceKm > DELIVERY.maxKm) {
-    return { deliverable: false, distanceKm, fee: 0, free: false, message: `Sorry, we deliver up to ${DELIVERY.maxKm} km only. You are ${distanceKm} km away.` };
+    return { deliverable: false, distanceKm, fee: 0, message: `Sorry, we deliver up to ${DELIVERY.maxKm} km only. You are ${distanceKm} km away. You can choose Pickup instead.` };
   }
-  const within = distanceKm <= DELIVERY.freeRadiusKm;
-  if (within && subtotal > DELIVERY.freeMinOrder) {
-    return { deliverable: true, distanceKm, fee: 0, free: true, message: `Free delivery (${distanceKm} km).` };
-  }
-  const fee = Math.max(DELIVERY.minFee, Math.round(distanceKm * DELIVERY.perKm));
-  const why = within
-    ? `Orders above ₹${DELIVERY.freeMinOrder} get free delivery within ${DELIVERY.freeRadiusKm} km.`
-    : `₹${DELIVERY.perKm} per km, minimum ₹${DELIVERY.minFee}.`;
-  return { deliverable: true, distanceKm, fee, free: false, message: `${distanceKm} km — delivery ₹${fee}. ${why}` };
+  const fee = distanceKm <= DELIVERY.nearKm ? DELIVERY.nearFee : DELIVERY.farFee;
+  return { deliverable: true, distanceKm, fee, message: `${distanceKm} km — delivery ₹${fee}.` };
 }
 
 export const rupee = (n: number) => `₹${n}`;
