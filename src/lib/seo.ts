@@ -8,10 +8,7 @@ import { GOOGLE } from '@/data/reviews';
  * When the real domain is connected, set NEXT_PUBLIC_SITE_URL in Vercel (e.g. https://misalhub.in) and redeploy:
  * canonical links, the sitemap, Open Graph and structured data all follow it automatically.
  */
-export const SITE_URL = (
-  process.env.NEXT_PUBLIC_SITE_URL ||
-  (process.env.VERCEL_PROJECT_PRODUCTION_URL ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}` : 'https://misalhubweb.vercel.app')
-).replace(/\/$/, '');
+export const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL || 'https://www.misalhub.com').replace(/\/$/, '');
 
 export const BRAND = {
   name: 'Misal Hub',
