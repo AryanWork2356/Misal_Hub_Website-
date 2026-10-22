@@ -2051,6 +2051,12 @@ html.lenis, html.lenis body { height: auto; }
 @media (prefers-reduced-motion: reduce) { .pg-menu .ot-pot > span, .pg-menu .ot-pot .steam { animation: none !important; } }
 .pg-menu .ot-hungry .btn { background: linear-gradient(135deg, #FFB067, #FF8A1F) !important; color: #2A1206 !important; border: 0 !important; font-weight: 800; padding: 14px 34px; box-shadow: 0 12px 28px rgba(255,138,31,.45); animation: menu-dlvGlow 2.8s ease-in-out infinite; }
 
+/* shop photo on the home page (Visit section) */
+.pg-menu .shop-photo { max-width: 920px; margin: 0 auto 34px; border-radius: 22px; overflow: hidden; border: 1px solid rgba(255,138,31,.4); box-shadow: 0 24px 50px rgba(0,0,0,.45); position: relative; }
+.pg-menu .shop-photo img { display: block; width: 100%; height: auto; }
+.pg-menu .shop-photo figcaption { position: absolute; left: 0; right: 0; bottom: 0; padding: 40px 20px 14px; background: linear-gradient(180deg, transparent, rgba(18,8,2,.88)); font: 600 .84rem 'Poppins', sans-serif; color: #FFE0B8 !important; }
+@media (max-width: 768px) { .pg-menu .shop-photo { border-radius: 16px; margin-bottom: 24px; } .pg-menu .shop-photo figcaption { font-size: .72rem; padding: 28px 12px 10px; } }
+
 /* ============================================================
    MISAL HUB — MENU & ORDER PAGE
    Brown surfaces, orange text.

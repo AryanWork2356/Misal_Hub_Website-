@@ -49,9 +49,9 @@ export function pageMeta({ title, description, path, absoluteTitle = false, noin
     robots: noindex ? { index: false, follow: true } : undefined,
     openGraph: {
       type: 'website', siteName: BRAND.name, locale: 'en_IN', url: path, title: fullTitle, description,
-      images: [{ url: '/opengraph-image', width: 1200, height: 630, alt: 'Misal Hub – authentic Misal Pav, Mira Road East' }],
+      images: [{ url: '/images/og-share.jpg', width: 1200, height: 630, alt: 'Misal Hub shop front on Pleasant Park Road, Mira Road East' }],
     },
-    twitter: { card: 'summary_large_image', title: fullTitle, description, images: ['/opengraph-image'] },
+    twitter: { card: 'summary_large_image', title: fullTitle, description, images: ['/images/og-share.jpg'] },
   };
 }
 
@@ -75,7 +75,7 @@ export function restaurantSchema() {
     description: 'Hot, fresh Maharashtrian misal pav since 2015 in Mira Road East, Mira Bhayandar. Dine-in, takeaway and online delivery within 5 km, Jain options, bulk and party orders. Franchise opportunities available.',
     url: SITE_URL,
     logo: abs('/icon.png'),
-    image: [abs('/images/logo-round.png'), abs('/images/menu/misal-pav.jpg'), abs('/images/menu/fry-misal-pav.jpg'), abs('/images/menu/misal-thali.jpg')],
+    image: [abs('/images/shop-16x9.jpg'), abs('/images/shop-4x3.jpg'), abs('/images/shop-front.jpg'), abs('/images/menu/misal-pav.jpg'), abs('/images/menu/fry-misal-pav.jpg'), abs('/images/menu/misal-thali.jpg')],
     telephone: BRAND.phone,
     email: BRAND.email,
     foundingDate: String(BRAND.since),

@@ -227,6 +227,10 @@ export default async function HomePage() {
               open every day, 8 AM to 8 PM. Dine in, take away, or get hot misal delivered across Mira Road and Bhayandar.
             </p>
           </div>
+          <figure className="shop-photo reveal">
+            <img src="/images/shop-16x9.jpg" alt="Misal Hub shop front on Pleasant Park Road, Mira Road East, with the orange Misal Hub signboard and striped awning" width={1280} height={720} loading="lazy" />
+            <figcaption>Our shop · Shop 2/3, Silver Cassia Apartment, Pleasant Park Road, Mira Road East</figcaption>
+          </figure>
           <div className="contact-grid">
             <div className="contact-card reveal">
               <h4>Address</h4>
