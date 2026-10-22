@@ -11,6 +11,11 @@
  *   4. In Vercel (or .env.local) set  APPS_SCRIPT_URL = that URL   and   APPS_SCRIPT_SECRET = the SECRET from step 2.
  *   5. Run the function  selfTest  once from the editor (Run button) to check the Sheet and e-mail work.
  *
+ * ORDER TRACKING: every paid order gets Progress = Preparing and an ETA (minutes) taken from Settings. The customer's phone shows a live
+ *   countdown. To change it, just type a new number in the "ETA (min)" cell of that order (e.g. 55): the countdown restarts from 55 minutes
+ *   from that moment. Use the Progress dropdown (Preparing / Out for delivery / Ready for pickup / Delivered / Cancelled) and, if you like,
+ *   "Message to customer" (e.g. "Heavy rain, a few minutes late").
+ *
  * MANUAL SWITCH (pause delivery / pickup for a day): the "Settings" tab of this Sheet.
  *   Delivery = YES / NO, Pickup = YES / NO, Message = text shown to customers. The website reads it about once a minute.
  *   (The tab is created by selfTest; after pasting a new version of this script: Deploy -> Manage deployments -> pencil -> Version: New version -> Deploy.)
@@ -27,7 +32,7 @@ var ORDERS = 'Orders';
 var FRANCHISE = 'Franchise Applications';
 var BULK = 'Bulk Orders';
 var ORDER_HEADERS = ['Created', 'Order ref', 'Status', 'Razorpay order id', 'Payment id', 'Paid at', 'Name', 'Phone', 'Email',
-  'Type', 'Address', 'Map link', 'Distance (km)', 'Items', 'Subtotal', 'Delivery fee', 'Total', 'Notes', 'Promo', 'Discount', 'Source'];
+  'Type', 'Address', 'Map link', 'Distance (km)', 'Items', 'Subtotal', 'Delivery fee', 'Total', 'Notes', 'Promo', 'Discount', 'Source', 'Progress', 'ETA (min)', 'ETA set at', 'Message to customer'];
 var BULK_HEADERS = ['Received', 'Name', 'Phone', 'Email', 'Occasion', 'Date needed', 'Time needed', 'People', 'Order details', 'Special / Jain', 'Plates & cutlery', 'Budget', 'Type', 'Address', 'Notes', 'Status'];
 var FRANCHISE_HEADERS = ['Received', 'Name', 'Phone', 'Email', 'City', 'Message'];
 
@@ -57,22 +62,57 @@ function sheet_(name, headers) {
 
 var SETTINGS = 'Settings';
 
+/** Runs automatically when someone edits the Sheet: typing a number in "ETA (min)" restarts that order's countdown from now. */
+function onEdit(e) {
+  try {
+    var sh = e.range.getSheet();
+    if (sh.getName() !== ORDERS || e.range.getRow() < 2 || e.range.getColumn() !== 23) return;
+    var n = Number(e.value);
+    sh.getRange(e.range.getRow(), 24).setValue(e.value === undefined || e.value === '' || isNaN(n) ? '' : new Date());
+  } catch (err) { /* never block an edit */ }
+}
+
+/** Customer tracking: find the PAID order for this reference + phone and return what the tracker needs. */
+function track_(q) {
+  var ref = String(q.ref || '').trim();
+  var want = String(q.phone || '').replace(/\D/g, '').slice(-10);
+  if (!ref || want.length !== 10) return { ok: false, error: 'not found' };
+  var sh = sheet_(ORDERS, ORDER_HEADERS);
+  if (sh.getLastRow() < 2) return { ok: false, error: 'not found' };
+  var hit = sh.getRange(2, 2, sh.getLastRow() - 1, 1).createTextFinder(ref).matchEntireCell(true).findNext();
+  if (!hit) return { ok: false, error: 'not found' };
+  var r = sh.getRange(hit.getRow(), 1, 1, ORDER_HEADERS.length).getValues()[0];
+  if (String(r[7]).replace(/\D/g, '').slice(-10) !== want || String(r[2]).indexOf('Paid') !== 0) return { ok: false, error: 'not found' };
+  var mins = Number(r[22]), at = r[23];
+  var etaAt = (mins > 0 && at instanceof Date) ? at.getTime() + mins * 60000 : null;
+  return { ok: true, ref: ref, progress: String(r[21] || 'Preparing'), items: String(r[13] || ''), total: r[16], type: String(r[9] || ''), address: String(r[10] || ''),
+    etaAt: etaAt, etaMin: mins > 0 ? mins : null, note: String(r[24] || ''), serverNow: new Date().getTime() };
+}
+
 /** Creates the Settings tab with YES/NO dropdowns the first time. */
 function settingsSheet_() {
   var ss = SpreadsheetApp.getActiveSpreadsheet();
   var sh = ss.getSheetByName(SETTINGS);
   if (!sh) {
     sh = ss.insertSheet(SETTINGS, 0);
-    sh.getRange(1, 1, 4, 3).setValues([
+    sh.getRange(1, 1, 6, 3).setValues([
       ['Setting', 'Value', 'What it does'],
       ['Delivery', 'YES', 'YES = customers can order delivery. NO = delivery paused (website blocks it).'],
       ['Pickup', 'YES', 'YES = customers can order pickup. NO = pickup paused.'],
-      ['Message', '', 'Optional text shown to customers when something is paused (e.g. "Closed today, back tomorrow 8 AM").']
+      ['Message', '', 'Optional text shown to customers when something is paused (e.g. "Closed today, back tomorrow 8 AM").'],
+      ['Default delivery time (min)', 40, 'Every new paid delivery order starts with this ETA. Change it per order in the Orders tab.'],
+      ['Default pickup time (min)', 20, 'Every new paid pickup order starts with this ETA.']
     ]);
     sh.getRange(1, 1, 1, 3).setFontWeight('bold').setBackground('#FFE0B8');
     var rule = SpreadsheetApp.newDataValidation().requireValueInList(['YES', 'NO'], true).setAllowInvalid(false).build();
     sh.getRange('B2:B3').setDataValidation(rule).setFontWeight('bold').setHorizontalAlignment('center');
-    sh.setColumnWidth(1, 110); sh.setColumnWidth(2, 110); sh.setColumnWidth(3, 520);
+    sh.setColumnWidth(1, 190); sh.setColumnWidth(2, 110); sh.setColumnWidth(3, 520);
+  } else if (sh.getLastRow() < 6) {
+    sh.getRange(5, 1, 2, 3).setValues([
+      ['Default delivery time (min)', 40, 'Every new paid delivery order starts with this ETA. Change it per order in the Orders tab.'],
+      ['Default pickup time (min)', 20, 'Every new paid pickup order starts with this ETA.']
+    ]);
+    sh.setColumnWidth(1, 190);
   }
   return sh;
 }
@@ -82,6 +122,7 @@ function doGet(e) {
   try {
     var q = (e && e.parameter) || {};
     if (!prop_('SECRET') || q.secret !== prop_('SECRET')) return out_({ ok: false, error: 'unauthorized' });
+    if (q.action === 'track') return out_(track_(q));
     if (q.action !== 'status') return out_({ ok: false, error: 'unknown action' });
     var v = settingsSheet_().getRange('B2:B4').getValues();
     var yn = function (x) { return String(x).toUpperCase().trim() === 'NO' ? 'NO' : 'YES'; };
@@ -161,6 +202,14 @@ function orderPaid_(d) {
   sh.getRange(r, 5).setValue(cell_(d.paymentId));
   sh.getRange(r, 6).setValue(new Date());
 
+  // order tracking: starts as "Preparing" with the default time from Settings (the owner can edit both in the Orders tab)
+  var prog = sh.getRange(r, 22);
+  prog.setDataValidation(SpreadsheetApp.newDataValidation().requireValueInList(['Preparing', 'Out for delivery', 'Ready for pickup', 'Delivered', 'Cancelled'], true).setAllowInvalid(true).build());
+  prog.setValue('Preparing');
+  var st = settingsSheet_().getRange('B5:B6').getValues();
+  var defMin = Number(String(row[9]) === 'Pickup' ? st[1][0] : st[0][0]);
+  if (defMin > 0 && !sh.getRange(r, 23).getValue()) { sh.getRange(r, 23).setValue(defMin); sh.getRange(r, 24).setValue(new Date()); }
+
   var o = { ref: row[1], name: row[6], phone: row[7], email: row[8], type: row[9], address: row[10], map: row[11], km: row[12], items: row[13], sub: row[14], fee: row[15], total: row[16], notes: row[17], promo: row[18], discount: row[19] };
   var html = '<h2>New PAID order ' + esc_(o.ref) + '</h2>' +
     '<p><b>' + esc_(o.type) + '</b> &middot; Total <b>Rs ' + esc_(o.total) + '</b> (items Rs ' + esc_(o.sub) + (o.discount ? ' - offer ' + esc_(o.promo) + ' Rs ' + esc_(o.discount) : '') + ' + delivery Rs ' + esc_(o.fee) + ')</p>' +
@@ -168,7 +217,8 @@ function orderPaid_(d) {
     '<p><b>' + esc_(o.name) + '</b> &middot; ' + esc_(o.phone) + (o.email ? ' &middot; ' + esc_(o.email) : '') + '</p>' +
     (o.type === 'Delivery' ? '<p>' + esc_(o.address) + '<br>' + (o.km ? esc_(o.km) + ' km &middot; ' : '') + '<a href="' + esc_(o.map) + '">Open in Google Maps</a></p>' : '<p>Pickup from shop.</p>') +
     (o.notes ? '<p><i>Notes: ' + esc_(o.notes) + '</i></p>' : '') +
-    '<p style="color:#666">Razorpay payment id: ' + esc_(d.paymentId) + '</p>';
+    '<p style="color:#666">Razorpay payment id: ' + esc_(d.paymentId) + '</p>' +
+    '<p style="color:#666">Customer sees a live countdown. To change the time or progress, edit "ETA (min)" / "Progress" for this order in the Orders tab.</p>';
   MailApp.sendEmail({ to: shopEmail_(), subject: 'New paid order ' + o.ref + ' - Rs ' + o.total + ' (' + o.type + ')', htmlBody: html, name: 'Misal Hub website' });
 
   if (o.email) {

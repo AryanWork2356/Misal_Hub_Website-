@@ -317,6 +317,12 @@ export default function MenuApp() {
     }
   }
 
+  /** keep the order on this device so the floating tracker can follow it */
+  function rememberOrder(ref: string, phone: string) {
+    try { localStorage.setItem('mh_active_order', JSON.stringify({ ref, phone, at: Date.now() })); } catch { /* ignore */ }
+    window.dispatchEvent(new Event('mh:order-placed'));
+  }
+
   /* ---------- pay ---------- */
   async function pay() {
     setError('');
@@ -349,6 +355,7 @@ export default function MenuApp() {
       if (j.demo) {   // TEST MODE (no payment keys yet): the order is already in the Sheet
         writeCart({});
         if (promo) retirePromo();
+        rememberOrder(j.ref, phone);
         setPaid({ ref: j.ref, total: j.totals.total });
         setStep('success'); setPaying(false); return;
       }
@@ -370,6 +377,7 @@ export default function MenuApp() {
           }
           writeCart({});
           if (promo) retirePromo();
+          rememberOrder(j.ref, phone);
           setPaid({ ref: j.ref, total: j.totals.total });
           setStep('success'); setPaying(false);
         },
@@ -545,7 +553,10 @@ export default function MenuApp() {
               <div><small>Amount paid</small><b>{rupee(paid.total)}</b></div>
             </div>
             <p className="cd-small">If you gave an email address, a confirmation is on its way. Questions? Call {SHOP.phone}.</p>
-            <button type="button" className="btn btn-gold" onClick={startOver}>Done</button>
+            <div className="done-actions">
+              <button type="button" className="btn btn-gold" onClick={() => { startOver(); window.dispatchEvent(new Event('mh:open-tracker')); }}>🛵 Track my order</button>
+              <button type="button" className="btn btn-sm" onClick={startOver}>Done</button>
+            </div>
           </div>
         )}
 

@@ -7,6 +7,7 @@ import { MENU } from '@/data/menu';
 import { normCode, promoDiscount } from '@/lib/promo';
 import { validMobile } from '@/lib/phone';
 import { earliestDate, validateBulk } from '@/lib/bulk';
+import { minutesLeft, stepIndex, isFinished } from '@/lib/eta';
 
 describe('delivery fee — the owner rules (₹50 up to 1 km, ₹80 beyond, nothing past 5 km)', () => {
   it('rules in code match what was agreed', () => {
@@ -236,5 +237,33 @@ describe('bulk / party order enquiry — everything the shop needs', () => {
     const p = validateBulk({ ...good, type: 'Pickup', address: '' }, now);
     expect(p.ok).toBe(true);
     if (p.ok) expect(p.data.address).toBe('');
+  });
+});
+
+describe('order tracking countdown — drops by itself, follows a new ETA', () => {
+  const etaAt = Date.parse('2026-11-02T10:40:00Z');          // the shop set "40 min" at 10:00
+  it('40 minutes at the start, then 39, 38 ... one per minute', () => {
+    expect(minutesLeft(etaAt, Date.parse('2026-11-02T10:00:00Z'))).toBe(40);
+    expect(minutesLeft(etaAt, Date.parse('2026-11-02T10:00:30Z'))).toBe(40);
+    expect(minutesLeft(etaAt, Date.parse('2026-11-02T10:01:00Z'))).toBe(39);
+    expect(minutesLeft(etaAt, Date.parse('2026-11-02T10:02:01Z'))).toBe(38);
+    expect(minutesLeft(etaAt, Date.parse('2026-11-02T10:39:10Z'))).toBe(1);
+  });
+  it('reaches 0 at the ETA and goes negative when late (the page then says "Arriving soon")', () => {
+    expect(minutesLeft(etaAt, Date.parse('2026-11-02T10:40:00Z'))).toBe(0);
+    expect(minutesLeft(etaAt, Date.parse('2026-11-02T10:45:00Z'))).toBeLessThan(0);
+  });
+  it('the shop adds time: a later ETA instantly gives a bigger number', () => {
+    const later = Date.parse('2026-11-02T10:55:00Z');       // owner typed a new value at 10:15 -> ready-by 10:55
+    expect(minutesLeft(later, Date.parse('2026-11-02T10:15:00Z'))).toBe(40);
+    expect(minutesLeft(later, Date.parse('2026-11-02T10:30:00Z'))).toBe(25);
+  });
+  it('no ETA yet -> null', () => { expect(minutesLeft(null, Date.now())).toBeNull(); });
+  it('progress steps', () => {
+    expect(stepIndex('Preparing')).toBe(1);
+    expect(stepIndex('Out for delivery')).toBe(2);
+    expect(stepIndex('Ready for pickup')).toBe(2);
+    expect(stepIndex('Delivered')).toBe(3);
+    expect(isFinished('Delivered')).toBe(true); expect(isFinished('Cancelled')).toBe(true); expect(isFinished('Preparing')).toBe(false);
   });
 });

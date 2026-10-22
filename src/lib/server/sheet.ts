@@ -46,3 +46,17 @@ export async function callSheet(payload: Record<string, unknown>): Promise<{ ok?
     return null;
   }
 }
+
+/** GET a read-only answer from the Apps Script (order tracking). Returns null when it cannot be reached. */
+export async function getSheet(params: Record<string, string>): Promise<Record<string, unknown> | null> {
+  const url = env.appsScriptUrl();
+  if (!url) return null;
+  try {
+    const q = new URLSearchParams({ ...params, secret: env.appsScriptSecret() });
+    const res = await fetch(`${url}${url.includes('?') ? '&' : '?'}${q}`, { redirect: 'follow', cache: 'no-store', signal: AbortSignal.timeout(8000) });
+    return JSON.parse(await res.text());
+  } catch (e) {
+    console.error('[sheet] read failed', params.action, (e as Error).message);
+    return null;
+  }
+}

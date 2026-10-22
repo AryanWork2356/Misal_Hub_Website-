@@ -31,6 +31,16 @@ const rzp = await mk(async (req, res) => {
   res.writeHead(200, { 'Content-Type': 'application/json' }); res.end(JSON.stringify(o));
 }, 4010);
 const script = await mk(async (req, res) => {
+  if (req.method === 'GET') {                                   // read-only requests (order tracking)
+    const u = new URL(req.url, 'http://x');
+    res.setHeader('Content-Type', 'application/json');
+    if (u.searchParams.get('secret') !== SCRIPT_SECRET) return res.end('{"ok":false,"error":"unauthorized"}');
+    if (u.searchParams.get('action') === 'track') {
+      const okOrder = u.searchParams.get('ref') === 'MH-TEST-1' && u.searchParams.get('phone') === '9820145678';
+      return res.end(JSON.stringify(okOrder ? { ok: true, progress: 'Out for delivery', items: '2 x Misal Pav - Rs 180', total: 230, type: 'Delivery', address: 'Flat 4, Silver Cassia', etaAt: 1790000000000, etaMin: 40, note: 'Rain, a little late', serverNow: 1789999000000, secretLeak: 'x' } : { ok: false, error: 'not found' }));
+    }
+    return res.end('{"ok":true,"delivery":"YES","pickup":"YES","message":""}');
+  }
   const body = JSON.parse((await readBody(req)) || '{}');
   if (body.secret !== SCRIPT_SECRET) { res.writeHead(200); return res.end('{"ok":false,"error":"unauthorized"}'); }
   res.setHeader('Content-Type', 'application/json');
@@ -231,6 +241,17 @@ try {
   ok('bulk: spam-trap filled -> silently dropped', r.json.ok && sheetEvents.length === 0);
   r = await post(3201, '/api/bulk', bulkBody);
   ok('bulk: unconfigured server says unavailable (503) with the phone number', r.status === 503 && /90041 67448/.test(r.json.error));
+
+  /* ----- order tracking ----- */
+  r = await post(3200, '/api/track', { ref: 'mh-test-1', phone: '+91 98201 45678' });
+  ok('track: right reference + phone -> status, items, total, ETA and the shop note', r.json.ok && r.json.order.progress === 'Out for delivery' && r.json.order.total === 230 && r.json.order.etaAt === 1790000000000 && r.json.order.etaMin === 40 && r.json.order.note === 'Rain, a little late' && /Misal Pav/.test(r.json.order.items), JSON.stringify(r.json).slice(0, 100));
+  ok('track: nothing internal leaks (no extra fields)', !('secretLeak' in (r.json.order || {})) && !JSON.stringify(r.json).includes('secretLeak'));
+  r = await post(3200, '/api/track', { ref: 'MH-TEST-1', phone: '9811122233' });
+  ok('track: wrong phone -> not found (404)', r.status === 404);
+  r = await post(3200, '/api/track', { ref: 'MH-NOPE', phone: '9820145678' });
+  ok('track: unknown reference -> not found (404)', r.status === 404);
+  r = await post(3200, '/api/track', {});
+  ok('track: empty request -> 404, no crash', r.status === 404);
 
   /* ----- manual pause switch ----- */
   let st = await (await fetch('http://127.0.0.1:3200/api/status')).json();

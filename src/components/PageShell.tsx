@@ -1,6 +1,7 @@
 import ScrollProgress from './ScrollProgress';
 import PageEffects from './PageEffects';
 import HashScroll from './HashScroll';
+import OrderTracker from './OrderTracker';
 
 /**
  * Every page renders inside <PageShell page="...">. The wrapper class (.pg-home, .pg-menu, ...)
@@ -13,6 +14,7 @@ export default function PageShell({ page, className = '', children }: { page: 'h
       {children}
       <PageEffects />
       <HashScroll />
+      <OrderTracker />
     </div>
   );
 }
