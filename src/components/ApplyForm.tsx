@@ -70,7 +70,7 @@ export default function ApplyForm() {
       </div>
       <div className="form-field">
         <label>Message (Optional)</label>
-        <textarea name="message" rows={3} placeholder="Tell us about your location, experience or any questions..." />
+        <textarea name="message" rows={3} placeholder="Which area or location do you have in mind? Any questions for us?" />
       </div>
       {error && <p className="form-note" role="alert" style={{ color: '#fca5a5' }}>{error}</p>}
       <button type="submit" className="btn btn-gold full-w submit-btn" disabled={state === 'sending'}>

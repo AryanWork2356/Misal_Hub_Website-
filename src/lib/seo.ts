@@ -204,23 +204,27 @@ export const HOME_FAQ: Faq[] = [
 
 export const FRANCHISE_FAQ: Faq[] = [
   {
-    q: 'What is the Misal Hub franchise model?',
-    a: 'Misal Hub follows a FOFO model — franchise owned, franchise operated. You own and run your outlet, while Misal Hub provides the brand, the signature recipes and the know-how to run a focused Maharashtrian menu.',
+    q: 'How does the Misal Hub franchise work?',
+    a: 'Misal Hub follows a franchise-owned, franchise-operated (FOFO) model. You own and run your outlet. We provide the brand, our exclusive misal masala, the shop setup, training and ongoing support.',
   },
   {
-    q: 'Why is a Misal Pav outlet a good franchise business?',
-    a: 'Misal is an everyday, high-repeat food. The menu is focused and quick to prepare, so the business is simple to manage with a small team, and the pocket-friendly prices keep customer volume steady.',
+    q: 'Is there a monthly royalty?',
+    a: 'Our first 10 franchise partners pay no monthly royalty. The full terms are set out in the franchise agreement.',
   },
   {
-    q: 'How do I apply for a Misal Hub franchise?',
-    a: 'Fill in the application form on this page with your name, phone, email and city (and a short message if you like). Our team will call you within 24 hours to discuss the next steps.',
+    q: 'How much does it cost to open a Misal Hub?',
+    a: 'It depends on the size of the outlet and the setup. We explain every cost clearly on the call, before you decide anything.',
   },
   {
-    q: 'Which cities can I open a Misal Hub in?',
-    a: 'Tell us your city in the application form and our team will discuss availability and the process with you on the call.',
+    q: 'Can I choose the location?',
+    a: 'You suggest a location and we make the final decision. We review every location so the outlet has the best chance to do well and the Misal Hub brand stays strong.',
   },
   {
-    q: 'Where did Misal Hub start?',
-    a: 'Misal Hub started in 2015 in Mira Road East, Mumbai (Thane district), founded by Vinay Jadhav and Sonam Jadhav, and has been serving authentic Maharashtrian misal ever since.',
+    q: 'Why do I have to buy the masala from Misal Hub?',
+    a: 'The masala is what makes our misal unique. It is made only by us, which keeps the taste the same in every outlet.',
+  },
+  {
+    q: 'How do I apply?',
+    a: 'Fill in the short application form on this page with your name, phone, email and city, and tell us the area you have in mind. Our team will call you within 24 hours.',
   },
 ];

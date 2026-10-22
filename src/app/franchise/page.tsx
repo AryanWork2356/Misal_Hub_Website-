@@ -12,40 +12,63 @@ import { pageMeta, breadcrumbSchema, FRANCHISE_FAQ } from '@/lib/seo';
 import '@/styles/franchise.css';
 
 export const metadata: Metadata = pageMeta({
-  title: 'Misal Hub Franchise – Own a Misal Pav Outlet (FOFO Model)',
-  description: 'Start your own Misal Hub: a proven Maharashtrian brand since 2015, a simple focused menu and full guidance. Apply online and our team calls you within 24 hours.',
+  title: 'Misal Hub Franchise – Own a Misal Pav Outlet | Zero Monthly Royalty',
+  description: 'Open your own Misal Hub: a trusted Maharashtrian brand since 2015, our exclusive misal masala, full setup and training. Zero monthly royalty for our first 10 partners. Apply online.',
   path: '/franchise',
   absoluteTitle: true,
 });
 
-const PARTNER = [
-  ['01', 'Authentic & High-Demand Product', 'Misal is a daily-consumption food with strong repeat customers and consistent demand throughout the year.'],
-  ['02', 'Quality & Hygiene Focus', 'We maintain strict hygiene standards and use quality ingredients to ensure great taste and customer satisfaction.'],
-  ['03', 'Affordable & Profitable Menu', 'Pocket-friendly pricing keeps customer volume high and daily sales steady, with strong margins.'],
-  ['04', 'Simple & Efficient Operations', 'With a limited menu and fast preparation, the business is easy to manage with minimal staff and low overhead.'],
-] as const;
+const ICONS: Record<string, string> = {
+  masala: 'M12 3c2 3 5 5 5 9a5 5 0 0 1-10 0c0-4 3-6 5-9zM12 21v-4',
+  brand: 'M4 5h16v10H4zM8 19h8M12 15v4M8 9h8',
+  setup: 'M3 11l9-7 9 7M5 10v10h14V10M10 20v-5h4v5',
+  training: 'M12 4l10 5-10 5L2 9zM6 11.5V16c0 1.5 3 3 6 3s6-1.5 6-3v-4.5',
+  billing: 'M6 3h12v18l-3-2-3 2-3-2-3 2zM9 8h6M9 12h6',
+  delivery: 'M3 7h11v9H3zM14 10h4l3 3v3h-7M7 19a2 2 0 1 0 0-.01M17 19a2 2 0 1 0 0-.01',
+  shield: 'M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6zM8.5 12l2.5 2.5L15.5 10',
+  taste: 'M12 3l2.6 5.6 6 .7-4.5 4.1 1.2 6L12 16.4 6.7 19.4l1.2-6L3.4 9.3l6-.7z',
+  tag: 'M3 12V4h8l10 10-8 8zM7.5 8.5h.01',
+  pin: 'M12 21s7-6.2 7-11a7 7 0 0 0-14 0c0 4.8 7 11 7 11zM12 12a2.4 2.4 0 1 0 0-4.8 2.4 2.4 0 0 0 0 4.8z',
+  rider: 'M5 18a3 3 0 1 0 0-.01M19 18a3 3 0 1 0 0-.01M5 18l3-7h5l3 7M13 11l-2-4H8M16 8h3',
+};
 
-const WHY = [
-  ['Brand', 'Brand', 'Legacy | Recognition | Trust', ['Established name in Mira Road since 2015', '4.4 rating from our customers', 'A loyal, returning customer base']],
-  ['SOP', 'Framework', 'High Standard | Proven SOP', ['Detailed operations manual', 'Quality control systems', 'Consistent recipe and process']],
-  ['Team', 'Support', 'Business | Operational | Crew', ['Business and operations training', 'Staff recruitment help', 'Ongoing guidance']],
-  ['Legal', 'Agreement', 'Transparent | Fair | Protected', ['Clear, extendable term', 'Pre-defined territory rights', 'Legal and compliance support']],
-  ['Tech', 'Technology Support', 'Digital | Smart | Connected', ['Zomato & Swiggy onboarding and service', 'POS and billing system', 'Digital marketing tools']],
-] as const;
+function Icon({ name, size = 30 }: { name: string; size?: number }) {
+  return (
+    <svg viewBox="0 0 24 24" width={size} height={size} fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d={ICONS[name]} />
+    </svg>
+  );
+}
 
-const SHINES = [
-  ['Target Audience', 'Breakfast-goers, college students, working professionals, families and food lovers who appreciate authentic, affordable Maharashtrian street food.'],
-  ['Prominence', "Misal Hub has grown through honest word-of-mouth and a loyal customer base. Our brand is recognised as one of Mira Road's most trusted Misal destinations."],
-  ['Authentic Concept', 'We serve Misal the way it was always meant to be — fresh ingredients, a secret spice blend and real butter. No shortcuts, no compromise.'],
-  ['Quality & Hygiene', 'Every outlet is trained to follow strict hygiene and food-safety protocols — because we care about every bowl we serve.'],
+const GET = [
+  ['masala', 'Exclusive Misal Masala', 'The signature masala that makes our misal what it is, made only by us and supplied to every outlet, so the taste stays the same.'],
+  ['brand', 'The Misal Hub Brand', 'Outside board, banners, menu boards and packaging, all ready to put up from day one.'],
+  ['setup', 'Shop Setup at Our Rates', 'Counter, tables and chairs sourced through our suppliers at supplier rates, so you do not overpay.'],
+  ['training', 'Training and Recipes', 'Hands-on training in our Mira Road kitchen: recipes, preparation, serving and customer handling.'],
+  ['billing', 'Billing and Sales Tools', 'Billing software and daily sales sheets, so you always know exactly how the outlet is doing.'],
+  ['delivery', 'Delivery and Online Orders', 'Trained Misal Hub delivery riders in uniform, plus help getting listed on Zomato and Swiggy.'],
 ] as const;
 
 const STEPS = [
-  ['01', 'Apply Online', 'Fill in our franchise application form with your details and city.'],
-  ['02', 'Discovery Call', 'Our franchise team calls you within 24 hours to understand your goals and answer questions.'],
-  ['03', 'Agreement Signed', 'Review and sign the franchise agreement. Your territory is locked exclusively for you.'],
-  ['04', 'Setup & Training', 'We help set up your outlet and train your team on recipes, operations and customer service.'],
-  ['05', 'Grand Opening', 'Launch your Misal Hub with our full marketing support and start serving from Day 1.'],
+  ['1', 'Apply', 'Fill in the short form below.'],
+  ['2', 'We call you', 'Within 24 hours, to understand your plan.'],
+  ['3', 'Location approval', 'You suggest a location, we make the final decision.'],
+  ['4', 'Agreement and setup', 'Sign the agreement; we set up the shop.'],
+  ['5', 'Training and launch', 'We train your team and open your outlet.'],
+] as const;
+
+const STANDARDS = [
+  ['shield', 'Hygiene comes first', 'Every outlet runs with FSSAI registration and our hygiene routine. Clean kitchens and safe food are not negotiable.'],
+  ['taste', 'One taste everywhere', 'The same recipe, the same masala, the same quality in every bowl, in every outlet.'],
+  ['tag', 'Protecting the brand', 'Only Misal Hub boards, packaging and menu are used in the shop. No competing brands inside the outlet.'],
+  ['pin', 'Locations we approve', 'You suggest the location and we review it, so every outlet has the best chance to succeed.'],
+  ['rider', 'Deliveries you can trust', 'Online orders go out with Misal Hub riders. If three online deliveries are missed, online orders pause for that outlet until it is fixed.'],
+] as const;
+
+const POINTS = [
+  'Tell us a little about yourself and the area you have in mind.',
+  'Our team calls you within 24 hours and explains everything openly.',
+  'No commitment until you have the full terms in front of you.',
 ] as const;
 
 export default function FranchisePage() {
@@ -54,190 +77,131 @@ export default function FranchisePage() {
       <Topbar />
       <Navbar active="franchise" applyAnchor />
 
-      {/* ===== BANNER WITH LOGO ===== */}
-      <section className="fr-banner">
-        <div className="container fr-banner-grid">
-          <div>
+      {/* ===== HERO ===== */}
+      <section className="fr2-hero">
+        <div className="fr2-glow" />
+        <div className="container fr2-hero-grid">
+          <div className="fr2-hero-copy">
             <div className="mb-breadcrumb"><Link href="/">Home</Link> › <span>Franchise</span></div>
-            <h1 className="fr-banner-title">Own a <em>Misal Hub</em></h1>
-            <p className="fr-banner-sub">Bring authentic Maharashtrian Misal Pav to your neighbourhood with a brand people already trust.</p>
-            <a href="#apply" className="btn btn-gold">Get Franchise</a>
-          </div>
-          <div className="fr-banner-logo">
-            <img src="/images/logo-round.png" alt="Misal Hub logo" />
-          </div>
-        </div>
-      </section>
-
-      {/* ===== PITCH ===== */}
-      <section className="pitch-section">
-        <div className="container pitch-grid">
-          <div className="pitch-copy reveal">
-            <div className="pill-tag">Join Our Family</div>
-            <h2 className="section-title">Join Hands With<br /><span className="gold">Misal Hub</span></h2>
-            <p className="pitch-tagline">Spicing up Mira Road since 2015</p>
-            <p>What started on the street is now one of Mira Road&apos;s most loved Misal destinations. We are looking for passionate partners who want to bring authentic Maharashtrian flavours to their neighbourhood — with a proven brand behind them.</p>
-            <div className="pitch-stats">
-              <div className="ps-item"><span className="ps-n">2015</span><span className="ps-l">Since</span></div>
-              <div className="ps-div" />
-              <div className="ps-item"><span className="ps-n">10+</span><span className="ps-l">Years Serving</span></div>
-              <div className="ps-div" />
-              <div className="ps-item"><span className="ps-n">4.4</span><span className="ps-l">Rating</span></div>
+            <span className="fr2-eyebrow">FRANCHISE OPPORTUNITY</span>
+            <h1 className="fr2-title">Own a <em>Misal Hub</em></h1>
+            <p className="fr2-lead">Bring authentic Maharashtrian misal pav to your neighbourhood with a brand Mira Road has trusted since 2015, backed by our own masala, a ready shop setup and hands-on training.</p>
+            <div className="fr2-cta">
+              <a href="#apply" className="btn btn-gold">Apply now</a>
+              <a href="#get" className="fr2-ghost">See what you get</a>
             </div>
-            <a href="#apply" className="btn btn-gold">Apply Now</a>
+            <ul className="fr2-facts">
+              <li><b>Since 2015</b><span>Mira Road East</span></li>
+              <li><b>FSSAI licensed</b><span>Our own kitchen</span></li>
+              <li><b>Exclusive</b><span>Misal Masala</span></li>
+            </ul>
           </div>
-          <div className="pitch-visual reveal">
-            <div className="pv-card">
-              <div className="pv-top pv-logo-block">
-                <div className="pvc-logo"><img src="/images/logo-round.png" alt="Misal Hub" /></div>
-                <div className="pvc-tag">Experience success with <strong>Misal Hub</strong><br />as a Franchise Partner.</div>
-                <div className="pvc-sub">Start Your Own Business Journey</div>
-              </div>
+          <div className="fr2-visual">
+            <div className="fr2-photo">
+              <img src="/images/shop-16x9.jpg" alt="The Misal Hub shop in Mira Road East" width={1280} height={720} />
+            </div>
+            <div className="fr2-seal" aria-label="0% monthly royalty for the first 10 partners">
+              <svg viewBox="0 0 100 100" aria-hidden="true">
+                <polygon points={Array.from({ length: 96 }, (_, i) => { const a = (i * Math.PI) / 48; const r = i % 2 ? 44 : 49; return `${(50 + r * Math.cos(a)).toFixed(2)},${(50 + r * Math.sin(a)).toFixed(2)}`; }).join(' ')} />
+              </svg>
+              <div><b>0%</b><span>monthly royalty</span><small>first 10 partners</small></div>
             </div>
           </div>
         </div>
       </section>
 
-      <div className="gold-divider" />
+      {/* ===== ROYALTY BAND ===== */}
+      <section className="fr2-band">
+        <div className="container fr2-band-in">
+          <div className="fr2-zero">0<sup>%</sup></div>
+          <div className="fr2-band-txt">
+            <h2>No monthly royalty for our first 10 partners</h2>
+            <p>We are building the Misal Hub family one outlet at a time, and our first 10 partners keep what they earn. Full terms are set out in your franchise agreement.</p>
+          </div>
+          <a href="#apply" className="fr2-band-btn">Claim your place</a>
+        </div>
+      </section>
 
-      {/* ===== WHY PARTNER WITH US ===== */}
-      <section className="partner-section">
+      {/* ===== WHAT YOU GET ===== */}
+      <section className="fr2-section" id="get">
         <div className="container">
-          <div className="section-hd reveal">
-            <div className="pill-tag">Real Reasons to Join</div>
-            <h2 className="section-title">Why <span className="gold">Partner With Us?</span></h2>
-            <p className="section-sub">Built on values that make the business work — every single day.</p>
+          <div className="fr2-head reveal">
+            <span>WHAT YOU GET</span>
+            <h2>Everything to open <em>with confidence</em></h2>
           </div>
-          <div className="partner-grid">
-            {PARTNER.map(([n, h, p]) => (
-              <div key={n} className="partner-card reveal">
-                <div className="pc-dot" />
-                <div className="pc-icon">{n}</div>
+          <div className="fr2-grid">
+            {GET.map(([ic, h, p]) => (
+              <div key={h} className="fr2-card reveal">
+                <div className="fr2-ico"><Icon name={ic} /></div>
                 <h3>{h}</h3>
                 <p>{p}</p>
               </div>
             ))}
-            <div className="partner-card reveal pc-wide">
-              <div className="pc-dot" />
-              <div className="pc-icon">05</div>
-              <h3>Strong Local Connect</h3>
-              <p>Misal Hub delivers authentic Maharashtrian taste that creates an emotional connection with customers — turning first-timers into regulars.</p>
-            </div>
           </div>
         </div>
       </section>
 
-      <div className="gold-divider" />
-
-      {/* ===== FRANCHISE MODEL ===== */}
-      <section className="model-section" id="model">
+      {/* ===== HOW IT WORKS ===== */}
+      <section className="fr2-section fr2-alt">
         <div className="container">
-          <div className="section-hd reveal">
-            <div className="pill-tag">Franchise Model</div>
-            <h2 className="section-title">How you <span className="gold">partner with us</span></h2>
+          <div className="fr2-head reveal">
+            <span>HOW IT WORKS</span>
+            <h2>Five simple <em>steps</em></h2>
           </div>
-          <div className="model-block reveal">
-            <div className="model-visual"><img src="/images/logo-round.png" alt="Misal Hub" /></div>
-            <div className="model-copy">
-              <span className="model-tag">FOFO</span>
-              <h3>Franchise Owned, Franchise Operated</h3>
-              <h4>You own the outlet and run it. We bring the brand behind it.</h4>
-              <p>In this model, Misal Hub licenses its brand name to the franchise partner for an agreed franchise fee and an agreed period of time. The partner owns and operates the outlet day to day, with the recipe, training and guidance of the Misal Hub team behind them.</p>
-              <ul className="model-points">
-                <li>Brand licence for an agreed term</li>
-                <li>Recipe, SOPs and training from the Misal Hub team</li>
-                <li>Zomato and Swiggy onboarding and service support</li>
-                <li>Franchise fee and terms shared on your discovery call</li>
-              </ul>
-              <a href="#apply" className="btn btn-gold">Apply for a Franchise</a>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <div className="gold-divider" />
-
-      {/* ===== WHY FRANCHISE ===== */}
-      <section className="why-section">
-        <div className="container">
-          <div className="section-hd reveal">
-            <div className="pill-tag">Your Advantage</div>
-            <h2 className="section-title">Why <span className="gold">Misal Hub</span> Franchise?</h2>
-            <p className="section-sub">Everything you need to build a successful food business — we&apos;ve got you covered.</p>
-          </div>
-          <div className="why-grid why-grid-5">
-            {WHY.map(([tag, title, sub, items]) => (
-              <div key={title} className="why-card reveal">
-                <div className="wc-icon-wrap"><span>{tag}</span></div>
-                <h3>{title}</h3>
-                <p>{sub.replaceAll(' | ', '  |  ')}</p>
-                <ul>{items.map((li) => <li key={li}>{li}</li>)}</ul>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      <div className="gold-divider" />
-
-      {/* ===== WHY MISAL HUB SHINES BRIGHT ===== */}
-      <section className="shines-section">
-        <div className="container">
-          <div className="section-hd reveal">
-            <h2 className="section-title" style={{ textTransform: 'uppercase', letterSpacing: 2 }}>Why Misal Hub <span className="gold">Shines Bright</span></h2>
-            <p className="section-sub" style={{ maxWidth: 700, margin: '14px auto 0' }}>Misal Hub offers you the opportunity to turn your passion for authentic Maharashtrian food into a successful business. Partner with us and become part of a family built on tradition, quality and community.</p>
-          </div>
-          <div className="shines-grid">
-            {SHINES.map(([h, p]) => (
-              <div key={h} className="shine-card reveal"><h4>{h}</h4><p>{p}</p></div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      <div className="gold-divider" />
-
-      {/* ===== PROCESS STEPS ===== */}
-      <section className="process-section">
-        <div className="container">
-          <div className="section-hd reveal">
-            <div className="pill-tag">How It Works</div>
-            <h2 className="section-title">Your Journey to <span className="gold">Owning a Misal Hub</span></h2>
-          </div>
-          <div className="process-steps">
-            {STEPS.map(([n, h, p], i) => (
-              <div key={n} className="ps-step reveal">
-                <div className="pss-num">{n}</div>
-                <h4>{h}</h4>
+          <ol className="fr2-steps">
+            {STEPS.map(([n, h, p]) => (
+              <li key={n} className="reveal">
+                <i>{n}</i>
+                <b>{h}</b>
                 <p>{p}</p>
-                <div className={i === STEPS.length - 1 ? 'pss-arrow last' : 'pss-arrow'}>{i === STEPS.length - 1 ? '' : '→'}</div>
-              </div>
+              </li>
             ))}
-          </div>
+          </ol>
         </div>
       </section>
 
-      <div className="gold-divider" />
-
-      {/* ===== APPLICATION FORM ===== */}
-      <section className="apply-section" id="apply">
-        <div className="apply-grid">
-          <div className="apply-image apply-logo-panel">
-            <img src="/images/logo-round.png" alt="Misal Hub logo" />
-            <p>Misal Hub<br /><span>Since 2015</span></p>
+      {/* ===== STANDARDS ===== */}
+      <section className="fr2-section">
+        <div className="container">
+          <div className="fr2-head reveal">
+            <span>OUR STANDARDS</span>
+            <h2>What keeps the brand <em>strong</em></h2>
           </div>
-          <div className="apply-form-wrap">
-            <div className="apply-form-card">
-              <div className="pill-tag">Franchise Application</div>
-              <h2 className="section-title">Join Misal Hub <span className="gold">Family</span></h2>
-              <p className="form-sub">Fill in your details — our team will call you back within 24 hours.</p>
-              <ApplyForm />
-            </div>
+          <div className="fr2-std">
+            {STANDARDS.map(([ic, h, p]) => (
+              <div key={h} className="fr2-std-card reveal">
+                <div className="fr2-ico sm"><Icon name={ic} size={26} /></div>
+                <div>
+                  <h3>{h}</h3>
+                  <p>{p}</p>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       </section>
 
       <FaqSection id="franchise-faq" title="Franchise" accent="questions" items={FRANCHISE_FAQ} />
+
+      {/* ===== APPLY ===== */}
+      <section className="fr2-apply" id="apply">
+        <div className="container fr2-apply-grid">
+          <div className="fr2-apply-side reveal">
+            <span className="fr2-eyebrow">APPLY</span>
+            <h2>Let us talk about <em>your outlet</em></h2>
+            <p>The first step is a simple conversation. Share your details and we will take it from there.</p>
+            <ul>
+              {POINTS.map((t, i) => <li key={t}><i>{i + 1}</i><span>{t}</span></li>)}
+            </ul>
+            <div className="fr2-apply-badge"><b>0%</b><span>monthly royalty for our first 10 partners</span></div>
+          </div>
+          <div className="fr2-apply-card reveal">
+            <div className="pill-tag">Franchise Application</div>
+            <ApplyForm />
+          </div>
+        </div>
+      </section>
+
       <JsonLd data={breadcrumbSchema([{ name: 'Home', path: '/' }, { name: 'Franchise', path: '/franchise' }])} />
       <Footer variant="franchise" />
       <FloatButtons />
