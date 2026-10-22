@@ -17,7 +17,7 @@ Details of the external accounts are in `docs/SETUP.md`; the run/architecture no
 2. **Commit and push to GitHub after every change**, without being asked. Only this repo. Commit message ends with the Co-Authored-By line the harness gives.
 3. **Never put secrets in the repo** (no API keys, tokens, passwords, `.env.local`). The owner once pasted a GitHub token in chat; it should be deleted/revoked on GitHub.
 4. **Ask before changing** anything the owner said is better handled on their side (accounts, KYC, legal wording, pricing decisions).
-5. Franchise page standing rules: **no emojis, no starting price / fee shown on the page**.
+5. Franchise page standing rules: **no emojis**. (The earlier "no price on the page" rule was replaced on the owner's request: the page now shows the fee and deposit, see below.)
 6. Do not promise things to customers or franchisees that the owner has not decided (for example "lifetime" royalty-free).
 7. Test before saying "done". Say plainly what failed or was skipped.
 
@@ -67,7 +67,7 @@ That regenerates `src/styles/<page>.css`, scoped under `.pg-home`, `.pg-menu`, `
 **Franchise page (`/franchise`, rebuilt last)**
 - Hero with shop photo and a "0% monthly royalty, first 10 partners" seal; orange royalty band; 6 "what you get" cards; 5 steps; 5 standards; FAQ (6 items); dark apply form (`ApplyForm`, posts to `/api/franchise` → Sheet + email). CSS classes are `fr2-*` at the end of `legacy/premium.css`.
 - Business decisions reflected on the page: no monthly royalty for the first 10 partners (without promising lifetime); **exclusive Misal Masala** supplied only by Misal Hub; outside board/banner; counters, tables and chairs sourced by Misal Hub at supplier rates; billing software and Excel/sales sheets; Misal Hub delivery riders are mandatory, Zomato/Swiggy onboarding help; franchisee suggests the location and Misal Hub gives final approval; only Misal Hub boards, packaging and menu, no competing brands in the shop; hygiene, FSSAI and quality first; **3 missed online deliveries → online orders paused for that outlet**.
-- Exit terms, penalties and deposit belong in the **franchise agreement, not on the page**. Fee idea given to the owner (their decision): founding fee ₹3.5–5 lakh, plus refundable deposit ₹50k–1 lakh, plus a separate setup package. The owner thought ₹2 lakh too low.
+- **Investment section (owner decided)**: one-time franchise fee **₹4,00,000**, refundable security deposit **₹1,00,000** (returned as set out in the agreement), shop setup paid separately at supplier rates, quoted before commitment. Shown on the page and in the FAQ (`FRANCHISE_FAQ`, now 7 items). Exit terms and penalties stay in the agreement, not on the page. If the owner changes the numbers, update `INVEST` in `src/app/franchise/page.tsx` and the cost/deposit answers in `src/lib/seo.ts`.
 
 ## How to run and ship
 
@@ -97,7 +97,7 @@ npx tsc --noEmit
 4. Transfer **Google Business Profile** ownership. The phone number Google shows (086918 96366) differs from the site's +91 90041 67448; make them consistent.
 5. Give the **exact legal name and address** for footer and policies; review the policy pages (privacy, terms, refund, delivery).
 6. **Vercel Pro** is needed for commercial use. Delete the pasted GitHub token.
-7. Decide the franchise fee, deposit and agreement terms (royalty after the first 10 partners, exit, penalties).
+7. Write the franchise agreement itself (royalty after the first 10 partners, deposit refund conditions, exit, penalties). The page only promises what the agreement will say, so have a lawyer check it.
 
 ## Ideas offered but not built
 

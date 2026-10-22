@@ -65,6 +65,12 @@ const STANDARDS = [
   ['rider', 'Deliveries you can trust', 'Online orders go out with Misal Hub riders. If three online deliveries are missed, online orders pause for that outlet until it is fixed.'],
 ] as const;
 
+const INVEST = [
+  ['Franchise fee', '₹4,00,000', 'One time', 'Brand licence, our exclusive masala supply, training and launch support.', true],
+  ['Security deposit', '₹1,00,000', 'Refundable', 'Held for the term of the agreement and returned as set out in it.', false],
+  ['Shop setup', 'At cost', 'Paid separately', 'Counter, tables, chairs and boards, sourced through our suppliers at supplier rates. We quote it before you commit.', false],
+] as const;
+
 const POINTS = [
   'Tell us a little about yourself and the area you have in mind.',
   'Our team calls you within 24 hours and explains everything openly.',
@@ -178,6 +184,27 @@ export default function FranchisePage() {
               </div>
             ))}
           </div>
+        </div>
+      </section>
+
+      {/* ===== INVESTMENT ===== */}
+      <section className="fr2-section fr2-alt" id="investment">
+        <div className="container">
+          <div className="fr2-head reveal">
+            <span>INVESTMENT</span>
+            <h2>Clear numbers, <em>no surprises</em></h2>
+          </div>
+          <div className="fr2-invest">
+            {INVEST.map(([h, amt, tag, p, main]) => (
+              <div key={h} className={main ? 'fr2-price main reveal' : 'fr2-price reveal'}>
+                <span className="fr2-price-tag">{tag}</span>
+                <h3>{h}</h3>
+                <div className="fr2-amt">{amt}</div>
+                <p>{p}</p>
+              </div>
+            ))}
+          </div>
+          <p className="fr2-invest-note">Monthly royalty: <b>zero for our first 10 partners</b>. The full terms, including how the deposit is returned, are set out in your franchise agreement.</p>
         </div>
       </section>
 
