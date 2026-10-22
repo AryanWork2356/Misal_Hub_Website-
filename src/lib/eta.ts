@@ -13,6 +13,9 @@ export type OrderView = {
   etaAt: number | null;          // ms since 1970 (server clock) the order should arrive / be ready
   etaMin: number | null;         // the minutes the shop originally set (for the progress ring)
   note: string;                  // optional message from the shop
+  /* the bill (My orders) */
+  createdAt?: number | null;     // when the order was placed (ms)
+  subtotal?: number; fee?: number; discount?: number; promo?: string; paymentId?: string;
 };
 
 /** whole minutes left, rounded UP (40:00 -> 40, 39:59 -> 40, 39:00 -> 39); null when no ETA has been set yet */

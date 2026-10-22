@@ -1581,3 +1581,62 @@ html.lenis, html.lenis body { height: auto; }
   .pg-franchise .ot-scene *, .pg-franchise .ot-ring::before, .pg-franchise .ot-ring .bar, .pg-franchise .ot-eta::after, .pg-franchise .ot-big.flip, .pg-franchise .ot-bike, .pg-franchise .conf, .pg-franchise .ot-steps li, .pg-franchise .ot-items li { animation: none !important; }
   .pg-franchise .ot-rider { transition: none; } .pg-franchise .ot-items li, .pg-franchise .ot-steps li { opacity: 1 !important; }
 }
+
+/* several orders at once: count badge on the pill + tabs in the panel */
+.pg-franchise .ot-count { position: absolute; right: -4px; top: -4px; min-width: 20px; height: 20px; padding: 0 5px; display: grid; place-items: center; border-radius: 10px; background: #ef4444; border: 2px solid #2A1206; color: #fff !important; font: 800 .68rem 'Poppins', sans-serif; font-style: normal; }
+.pg-franchise .ot-tabs { display: flex; gap: 8px; padding: 12px 22px 0; overflow-x: auto; scrollbar-width: none; }
+.pg-franchise .ot-tabs::-webkit-scrollbar { display: none; }
+.pg-franchise .ot-tabs button { flex: 0 0 auto; display: grid; gap: 1px; padding: 8px 16px; border-radius: 14px; border: 1.5px solid rgba(255,138,31,.35); background: rgba(255,255,255,.04); text-align: left; cursor: pointer; color: #FFE0B8 !important; transition: border-color .2s, background .2s; }
+.pg-franchise .ot-tabs button b { font: 800 .82rem 'Poppins', sans-serif; letter-spacing: .5px; color: #fff !important; }
+.pg-franchise .ot-tabs button small { font: 600 .68rem 'Poppins', sans-serif; color: #FFB067 !important; }
+.pg-franchise .ot-tabs button.on { border-color: #FF8A1F; background: rgba(255,138,31,.18); box-shadow: 0 0 0 3px rgba(255,138,31,.15); }
+
+/* =====================================================================
+   MY ORDERS page (+ header link)
+   ===================================================================== */
+.pg-franchise .nav-links a.nav-orders { display: inline-flex; align-items: center; gap: 6px; padding: 8px 14px; border-radius: 50px; border: 1.5px solid rgba(74,222,128,.55); background: rgba(74,222,128,.08); color: #86efac !important; font-weight: 700; white-space: nowrap; transition: background .2s, transform .2s; }
+.pg-franchise .nav-links a.nav-orders:hover, .pg-franchise .nav-links a.nav-orders.active { background: rgba(74,222,128,.2); transform: translateY(-1px); }
+@media (min-width: 769px) and (max-width: 1380px) { .pg-franchise .nav-links a.nav-orders { padding: 7px 10px; font-size: .78rem; } .pg-franchise .nav-account { margin-left: 6px; } }
+.pg-franchise .mo-wrap { max-width: 900px; }
+.pg-franchise .mo-note { text-align: center; opacity: .8; margin: 8px 0 18px; }
+.pg-franchise .mo-signin { max-width: 460px; margin: 0 auto; }
+.pg-franchise .mo-empty { text-align: center; padding: 50px 10px; }
+.pg-franchise .mo-empty > span { font-size: 3.4rem; }
+.pg-franchise .mo-empty h3 { margin: 8px 0; font: 800 1.5rem 'Playfair Display', serif; color: #FF8A1F; }
+.pg-franchise .mo-empty p { margin: 0 0 18px; opacity: .85; }
+.pg-franchise .mo section { margin-bottom: 38px; }
+.pg-franchise .mo h2 { display: flex; align-items: center; gap: 10px; margin: 0 0 16px; font: 800 1.4rem 'Playfair Display', serif; color: #FF8A1F; }
+.pg-franchise .mo h2 em { display: grid; place-items: center; min-width: 26px; height: 26px; padding: 0 8px; border-radius: 13px; background: #ef4444; color: #fff !important; font: 800 .8rem 'Poppins', sans-serif; font-style: normal; }
+.pg-franchise .mo-list { display: grid; gap: 16px; }
+.pg-franchise .mo-card { padding: 20px; border-radius: 20px; border: 1px solid rgba(255,138,31,.35); background: linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.02)); box-shadow: 0 14px 30px rgba(0,0,0,.25); animation: franchise-otRise .5s ease both; }
+.pg-franchise .mo-card:not(.fin) { border-color: #FF8A1F; box-shadow: 0 14px 34px rgba(255,138,31,.18); }
+.pg-franchise .mo-card header { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
+.pg-franchise .mo-card header b { display: block; font: 800 1rem 'Poppins', sans-serif; letter-spacing: .6px; color: #fff !important; }
+.pg-franchise .mo-card header small { font-size: .76rem; opacity: .7; }
+.pg-franchise .mo-badge { flex: 0 0 auto; padding: 6px 12px; border-radius: 50px; font: 800 .72rem 'Poppins', sans-serif; letter-spacing: .4px; }
+.pg-franchise .mo-badge.live { background: rgba(255,138,31,.2); color: #FFB067 !important; border: 1px solid #FF8A1F; animation: franchise-otNow 1.8s ease-in-out infinite; }
+.pg-franchise .mo-badge.ok { background: rgba(74,222,128,.15); color: #86efac !important; border: 1px solid rgba(74,222,128,.5); }
+.pg-franchise .mo-badge.bad { background: rgba(239,68,68,.15); color: #fca5a5 !important; border: 1px solid rgba(239,68,68,.5); }
+.pg-franchise .mo-prog { display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px; margin-bottom: 14px; }
+.pg-franchise .mo-prog i { height: 6px; border-radius: 6px; background: rgba(255,255,255,.12); }
+.pg-franchise .mo-prog i.d { background: #22c55e; } .pg-franchise .mo-prog i.n { background: linear-gradient(90deg, #FF8A1F, #FFB067, #FF8A1F); background-size: 200% 100%; animation: franchise-ofShine 2s linear infinite; }
+.pg-franchise .mo-lines { list-style: none; margin: 0 0 14px; padding: 0; display: grid; gap: 6px; font-size: .9rem; }
+.pg-franchise .mo-lines li { padding-bottom: 6px; border-bottom: 1px dashed rgba(255,138,31,.22); }
+.pg-franchise .mo-lines li.more { border: 0; opacity: .65; font-size: .8rem; }
+.pg-franchise .mo-foot { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.pg-franchise .mo-foot > span { display: grid; line-height: 1.2; }
+.pg-franchise .mo-foot small { font: 700 .66rem 'Poppins', sans-serif; letter-spacing: 1.5px; text-transform: uppercase; color: #FFB067 !important; }
+.pg-franchise .mo-foot b { font: 800 1.2rem 'Poppins', sans-serif; color: #FF8A1F !important; }
+.pg-franchise .mo-btns { display: flex; gap: 8px; flex-wrap: wrap; }
+.pg-franchise .mo-bill { margin-top: 16px; padding: 16px; border-radius: 16px; background: rgba(0,0,0,.22); border: 1px solid rgba(255,138,31,.25); animation: franchise-otRise .35s ease both; }
+.pg-franchise .mo-bill h4 { margin: 0 0 10px; font: 700 .72rem 'Poppins', sans-serif; letter-spacing: 1.6px; text-transform: uppercase; color: #FFB067 !important; }
+.pg-franchise .mo-bill dl { margin: 0 0 12px; display: grid; gap: 7px; }
+.pg-franchise .mo-bill dl > div { display: flex; justify-content: space-between; gap: 10px; font-size: .9rem; }
+.pg-franchise .mo-bill dt, .pg-franchise .mo-bill dd { margin: 0; }
+.pg-franchise .mo-bill .disc dt, .pg-franchise .mo-bill .disc dd { color: #4ade80 !important; }
+.pg-franchise .mo-bill .tot { margin-top: 4px; padding-top: 10px; border-top: 1px dashed rgba(255,138,31,.4); font-weight: 800; font-size: 1rem; }
+.pg-franchise .mo-bill .tot dd { color: #FF8A1F !important; }
+.pg-franchise .mo-bill p { margin: 6px 0; font-size: .84rem; line-height: 1.6; word-break: break-word; }
+.pg-franchise .mo-bill p small { display: block; font: 700 .62rem 'Poppins', sans-serif; letter-spacing: 1.4px; text-transform: uppercase; color: #FFB067 !important; }
+.pg-franchise .mo-help { opacity: .85; } .pg-franchise .mo-help a { color: #FFB067; text-decoration: underline; }
+@media (max-width: 560px) { .pg-franchise .mo-card { padding: 16px; } }

@@ -11,21 +11,24 @@ import { useAccount } from '@/lib/useAccount';
  */
 export default function OrderTracker() {
   const acct = useAccount();
-  const [order, setOrder] = useState<OrderView | null>(null);
+  const [orders, setOrders] = useState<OrderView[]>([]);
+  const [sel, setSel] = useState('');
   const [skew, setSkew] = useState(0);
   const [now, setNow] = useState(0);
   const [open, setOpen] = useState(false);
   const signedIn = !!acct.user;
 
   const load = useCallback(async () => {
-    if (!signedIn) { setOrder(null); return; }
+    if (!signedIn) { setOrders([]); return; }
     try {
       const j = await (await fetch('/api/orders/active', { cache: 'no-store' })).json();
       if (!j.ok) return;
       setSkew(Number(j.serverNow || Date.now()) - Date.now());
-      let dismissed = '';
-      try { dismissed = localStorage.getItem('mh_dismissed_order') || ''; } catch { /* ignore */ }
-      setOrder(j.order && j.order.ref !== dismissed ? (j.order as OrderView) : null);   // exactly what the shop set; hidden once the customer pressed Done
+      let dismissed: string[] = [];
+      try { dismissed = JSON.parse(localStorage.getItem('mh_dismissed_orders') || '[]'); } catch { /* ignore */ }
+      const list = ((j.orders as OrderView[] | undefined) ?? (j.order ? [j.order as OrderView] : [])).filter((o) => !dismissed.includes(o.ref));   // exactly what the shop set; an order disappears once its customer pressed Done
+      setOrders(list);
+      setSel((cur) => (list.some((o) => o.ref === cur) ? cur : list[0]?.ref || ''));
     } catch { /* keep what we have */ }
   }, [signedIn]);
 
@@ -36,7 +39,7 @@ export default function OrderTracker() {
     const t = setInterval(load, open ? 10_000 : 30_000);
     const vis = () => { if (document.visibilityState === 'visible') load(); };
     const placed = () => { load(); setTimeout(load, 2500); setTimeout(load, 7000); };
-    const openIt = () => { load(); setOpen(true); };
+    const openIt = (e: Event) => { load(); const ref = (e as CustomEvent<{ ref?: string }>).detail?.ref; if (ref) setSel(ref); setOpen(true); };
     document.addEventListener('visibilitychange', vis);
     window.addEventListener('mh:order-placed', placed);
     window.addEventListener('mh:open-tracker', openIt);
@@ -58,7 +61,14 @@ export default function OrderTracker() {
     return () => document.removeEventListener('keydown', onKey);
   }, [open]);
 
+  const order = orders.find((o) => o.ref === sel) ?? orders[0];
   if (!signedIn || !order) return null;
+
+  /* one short status line per order (pill + tabs) */
+  const short = (o: OrderView) => {
+    const l = minutesLeft(o.etaAt, now + skew);
+    return o.progress === 'Cancelled' ? 'Cancelled' : isFinished(o.progress) ? (o.type === 'Pickup' ? 'Picked up ✓' : 'Delivered ✓') : l == null ? 'Confirming time…' : l > 0 ? `${l} min` : 'Arriving soon';
+  };
 
   const left = minutesLeft(order.etaAt, now + skew);
   const finished = isFinished(order.progress);
@@ -67,7 +77,9 @@ export default function OrderTracker() {
   const step = stepIndex(order.progress);
   const steps = isPickup ? ['Order placed', 'Preparing', 'Ready for pickup', 'Picked up'] : ['Order placed', 'Preparing', 'Out for delivery', 'Delivered'];
 
-  const pill = cancelled ? 'Order cancelled' : finished ? (isPickup ? 'Picked up ✓' : 'Delivered ✓') : left == null ? 'Confirming time…' : left > 0 ? `${left} min` : 'Arriving soon';
+  const many = orders.length > 1;
+  const activeCount = orders.filter((o) => !isFinished(o.progress)).length;
+  const pill = many ? `${orders.length} orders` : short(order);
   const big = left != null && left > 0 ? String(left) : null;
   const frac = order.etaMin && left != null ? Math.max(0, Math.min(1, left / order.etaMin)) : 1;
   const C = 2 * Math.PI * 54;
@@ -75,14 +87,18 @@ export default function OrderTracker() {
   const scene = finished ? 'done' : step >= 2 ? 'ride' : 'cook';
   const lines = (order.items || '').split('\n').map((l) => l.trim()).filter(Boolean);
 
-  const done = () => { try { localStorage.setItem('mh_dismissed_order', order.ref); } catch { /* ignore */ } setOpen(false); setOrder(null); };
+  const done = () => {
+    try { const d = JSON.parse(localStorage.getItem('mh_dismissed_orders') || '[]'); localStorage.setItem('mh_dismissed_orders', JSON.stringify([...d, order.ref].slice(-60))); } catch { /* ignore */ }
+    const rest = orders.filter((o) => o.ref !== order.ref);
+    setOrders(rest); setSel(rest[0]?.ref || ''); if (!rest.length) setOpen(false);
+  };
 
   return (
     <>
-      <button type="button" className={`ot-pill${finished ? ' is-done' : ''}`} onClick={() => setOpen(true)} aria-label={`Track your order: ${pill}`}>
-        <span className="ot-pill-ico" aria-hidden="true">{finished ? '✓' : <span className="ot-bike">🛵</span>}</span>
-        <span className="ot-pill-txt"><small>{finished ? 'Your order' : 'Track order'}</small><b>{pill}</b></span>
-        {!finished && <i className="ot-pulse" aria-hidden="true" />}
+      <button type="button" className={`ot-pill${(many ? activeCount === 0 : finished) ? ' is-done' : ''}`} onClick={() => setOpen(true)} aria-label={`Track your order: ${pill}`}>
+        <span className="ot-pill-ico" aria-hidden="true">{(many ? activeCount === 0 : finished) ? '✓' : <span className="ot-bike">🛵</span>}{many && <em className="ot-count">{orders.length}</em>}</span>
+        <span className="ot-pill-txt"><small>{many ? (activeCount ? `${activeCount} on the way · track` : 'Your orders') : finished ? 'Your order' : 'Track order'}</small><b>{pill}</b></span>
+        {(many ? activeCount > 0 : !finished) && <i className="ot-pulse" aria-hidden="true" />}
       </button>
 
       <div className={`ot-sheet${open ? ' open' : ''}`} aria-hidden={!open} role="dialog" aria-label="Track your order">
@@ -92,6 +108,16 @@ export default function OrderTracker() {
             <div><small>YOUR ORDER</small><b>{order.ref}</b></div>
             <button type="button" className="ot-x" onClick={() => setOpen(false)} aria-label="Close">×</button>
           </div>
+
+          {many && (
+            <div className="ot-tabs" role="tablist" aria-label="Your orders">
+              {orders.map((o) => (
+                <button key={o.ref} type="button" role="tab" aria-selected={o.ref === order.ref} className={o.ref === order.ref ? 'on' : ''} onClick={() => setSel(o.ref)}>
+                  <b>…{o.ref.slice(-4)}</b><small>{short(o)}</small>
+                </button>
+              ))}
+            </div>
+          )}
 
           <div className="ot-body">
             {!order ? (

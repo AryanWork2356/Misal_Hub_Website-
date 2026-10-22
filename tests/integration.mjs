@@ -40,10 +40,12 @@ const script = await mk(async (req, res) => {
       const okOrder = u.searchParams.get('ref') === 'MH-TEST-1' && u.searchParams.get('phone') === '9820145678';
       return res.end(JSON.stringify(okOrder ? { ok: true, progress: 'Out for delivery', items: '2 x Misal Pav - Rs 180', total: 230, type: 'Delivery', address: 'Flat 4, Silver Cassia', etaAt: 1790000000000, etaMin: 40, note: 'Rain, a little late', serverNow: 1789999000000, secretLeak: 'x' } : { ok: false, error: 'not found' }));
     }
-    if (u.searchParams.get('action') === 'active_order') {
-      const em = u.searchParams.get('email');
-      return res.end(JSON.stringify(em === 'tracker@example.com' ? { ok: true, ref: 'MH-LIVE-9', progress: 'Preparing', items: '1 x Misal Pav - Rs 90', total: 140, type: 'Pickup', address: '', etaAt: 1790000000000, etaMin: 20, note: '', serverNow: 1789999000000 } : { ok: true }));
-    }
+    const em = u.searchParams.get('email');
+    const live = { ok: true, ref: 'MH-LIVE-9', progress: 'Preparing', items: '1 x Misal Pav - Rs 90', total: 140, type: 'Pickup', address: '', etaAt: 1790000000000, etaMin: 20, note: '', serverNow: 1789999000000, createdAt: 1789998000000, subtotal: 150, fee: 0, discount: 10, promo: 'MISAL10', paymentId: 'pay_ABC123', secretLeak: 'x' };
+    const live2 = { ...live, ref: 'MH-LIVE-10', progress: 'Out for delivery', type: 'Delivery', address: 'Flat 4, Silver Cassia', total: 230, fee: 50, discount: 0, promo: '', paymentId: 'pay_DEF456' };
+    const old = { ...live, ref: 'MH-OLD-1', progress: 'Delivered', createdAt: 1789000000000, paymentId: 'pay_OLD001' };
+    if (u.searchParams.get('action') === 'active_orders') return res.end(JSON.stringify(em === 'tracker@example.com' ? { ok: true, orders: [live, live2], serverNow: 1789999000000 } : { ok: true, orders: [] }));
+    if (u.searchParams.get('action') === 'my_orders') return res.end(JSON.stringify(em === 'tracker@example.com' ? { ok: true, orders: [live, live2, old], serverNow: 1789999000000 } : { ok: true, orders: [] }));
     return res.end('{"ok":true,"delivery":"YES","pickup":"YES","message":""}');
   }
   const body = JSON.parse((await readBody(req)) || '{}');
@@ -341,7 +343,15 @@ try {
   // tracking follows the account
   const tr = await signIn(3208, 'tracker@example.com', '9870099887');
   r = await get(3208, '/api/orders/active', tr);
-  ok('tracker: the signed-in account sees its active order (any device)', r.json.order?.ref === 'MH-LIVE-9' && r.json.order.etaMin === 20 && r.json.order.type === 'Pickup');
+  ok('tracker: the account sees ALL its active orders (two), the first one also as "order"', r.json.orders?.length === 2 && r.json.orders[0].ref === 'MH-LIVE-9' && r.json.orders[1].ref === 'MH-LIVE-10' && r.json.order?.ref === 'MH-LIVE-9' && r.json.orders[0].etaMin === 20);
+  ok('tracker: nothing internal leaks (only the known fields)', !JSON.stringify(r.json).includes('secretLeak'));
+  r = await get(3208, '/api/orders/mine', tr);
+  ok('my orders: history + active with the full bill (items, subtotal, discount, delivery, payment reference)', r.json.ok && r.json.orders.length === 3 && r.json.orders[0].subtotal === 150 && r.json.orders[0].discount === 10 && r.json.orders[0].promo === 'MISAL10' && r.json.orders[1].fee === 50 && r.json.orders[2].paymentId === 'pay_OLD001' && r.json.orders[2].progress === 'Delivered');
+  ok('my orders: nothing internal leaks', !JSON.stringify(r.json).includes('secretLeak'));
+  r = await get(3208, '/api/orders/mine');
+  ok('my orders: signed out -> 401 (sign in first)', r.status === 401);
+  r = await get(3208, '/api/orders/mine', await signIn(3208, 'newbie@example.com', '9870077665'));
+  ok('my orders: a new account has none', r.json.ok && r.json.orders.length === 0);
   r = await get(3208, '/api/orders/active', await signIn(3208, 'someone.else@example.com', '9870055443'));
   ok('tracker: another account sees nothing', r.json.order === null);
   r = await get(3208, '/api/orders/active');

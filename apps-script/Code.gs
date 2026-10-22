@@ -143,32 +143,40 @@ function normProgress_(v) {
   return 'Preparing';
 }
 
-/** The shape the tracker needs, from one Orders row. */
+/** The shape the tracker + "My orders" need, from one Orders row (status + countdown + the full bill). */
 function orderView_(r) {
   var mins = Number(r[22]), at = r[23];
   var etaAt = (mins > 0 && at instanceof Date) ? at.getTime() + mins * 60000 : null;
   return { ok: true, ref: String(r[1]), progress: normProgress_(r[21]), items: String(r[13] || ''), total: r[16], type: String(r[9] || ''), address: String(r[10] || ''),
-    etaAt: etaAt, etaMin: mins > 0 ? mins : null, note: String(r[24] || ''), serverNow: new Date().getTime() };
+    etaAt: etaAt, etaMin: mins > 0 ? mins : null, note: String(r[24] || ''), serverNow: new Date().getTime(),
+    createdAt: r[0] instanceof Date ? r[0].getTime() : null, subtotal: r[14], fee: r[15], discount: Number(r[19]) || 0, promo: String(r[18] || ''), paymentId: String(r[4] || '') };
 }
 
-/** The signed-in customer's latest PAID order: shown while it is active (up to 12 hours), and for 3 hours after it was delivered / cancelled. */
-function activeOrder_(q) {
+/** All of the signed-in customer's PAID orders, newest first (max 40) — for the "My orders" page. */
+function myOrders_(q) {
   var email = String(q.email || '').trim().toLowerCase();
   var sh = sheet_(ORDERS, ORDER_HEADERS);
   var n = sh.getLastRow() - 1;
-  if (!email || n < 1) return { ok: true };
+  if (!email || n < 1) return { ok: true, orders: [], serverNow: new Date().getTime() };
   var rows = sh.getRange(2, 1, n, ORDER_HEADERS.length).getValues();
-  var now = new Date().getTime();
-  for (var i = rows.length - 1; i >= 0; i--) {
+  var out = [];
+  for (var i = rows.length - 1; i >= 0 && out.length < 40; i--) {
     var r = rows[i];
-    if (String(r[8]).trim().toLowerCase() !== email || String(r[2]).indexOf('Paid') !== 0) continue;
-    if (!(r[0] instanceof Date)) continue;
-    var prog = normProgress_(r[21]);
-    var finished = prog === 'Delivered' || prog === 'Cancelled';
-    if (now - r[0].getTime() > (finished ? 3 : 12) * 60 * 60 * 1000) return { ok: true };   // too old: nothing to show
-    return orderView_(r);                                                                   // the latest paid order decides
+    if (String(r[8]).trim().toLowerCase() === email && String(r[2]).indexOf('Paid') === 0) out.push(orderView_(r));
   }
-  return { ok: true };
+  return { ok: true, orders: out, serverNow: new Date().getTime() };
+}
+
+/** The customer's orders for the floating tracker: every one still active (up to 12 h) plus ones finished in the last 3 h (max 6). */
+function activeOrders_(q) {
+  var all = myOrders_(q).orders;
+  var now = new Date().getTime(), out = [];
+  for (var i = 0; i < all.length && out.length < 6; i++) {
+    var o = all[i];
+    var finished = o.progress === 'Delivered' || o.progress === 'Cancelled';
+    if (o.createdAt && now - o.createdAt <= (finished ? 3 : 12) * 60 * 60 * 1000) out.push(o);
+  }
+  return { ok: true, orders: out, serverNow: now };
 }
 
 /** Customer tracking: find the PAID order for this reference + phone and return what the tracker needs. */
@@ -222,7 +230,8 @@ function doGet(e) {
     var q = (e && e.parameter) || {};
     if (!prop_('SECRET') || q.secret !== prop_('SECRET')) return out_({ ok: false, error: 'unauthorized' });
     if (q.action === 'track') return out_(track_(q));
-    if (q.action === 'active_order') return out_(activeOrder_(q));
+    if (q.action === 'active_orders') return out_(activeOrders_(q));
+    if (q.action === 'my_orders') return out_(myOrders_(q));
     if (q.action !== 'status') return out_({ ok: false, error: 'unknown action' });
     var v = settingsSheet_().getRange('B2:B4').getValues();
     var yn = function (x) { return String(x).toUpperCase().trim() === 'NO' ? 'NO' : 'YES'; };
