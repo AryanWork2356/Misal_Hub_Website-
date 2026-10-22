@@ -1788,7 +1788,7 @@ html.lenis, html.lenis body { height: auto; }
 .pg-home .ot-pill.is-done { box-shadow: 0 12px 30px rgba(0,0,0,.5), 0 0 0 1.5px #4ade80; }
 .pg-home .ot-pill.is-done .ot-pill-ico { background: linear-gradient(135deg, #6ee7a0, #22c55e); }
 
-.pg-home .ot-sheet { position: fixed; inset: 0; z-index: 1300; visibility: hidden; pointer-events: none; }
+.pg-home .ot-sheet { position: fixed; inset: 0; z-index: 1700; visibility: hidden; pointer-events: none; }
 .pg-home .ot-sheet.open { visibility: visible; pointer-events: auto; }
 .pg-home .ot-backdrop { position: absolute; inset: 0; background: rgba(8,3,1,.65); opacity: 0; transition: opacity .3s; backdrop-filter: blur(2px); }
 .pg-home .ot-sheet.open .ot-backdrop { opacity: 1; }
@@ -1893,7 +1893,7 @@ html.lenis, html.lenis body { height: auto; }
 .pg-home .acct-btn.in { border-color: #4ade80; box-shadow: 0 0 0 2px rgba(74,222,128,.25); }
 .pg-home .acct-initials { display: grid; place-items: center; background: linear-gradient(135deg, #FFB067, #FF8A1F); color: #2A1206 !important; font: 800 .95rem 'Poppins', sans-serif; }
 .pg-home .acct-dot { position: absolute; right: -1px; top: -1px; width: 12px; height: 12px; border-radius: 50%; background: #FF8A1F; border: 2px solid #1b0d05; animation: home-waDot 1.6s ease-in-out infinite; }
-.pg-home .acct-pop { position: absolute; right: 0; top: calc(100% + 10px); z-index: 1400; min-width: 230px; padding: 8px; border-radius: 16px; background: #2A1206; border: 1px solid rgba(255,138,31,.5); box-shadow: 0 20px 44px rgba(0,0,0,.55); }
+.pg-home .acct-pop { position: absolute; right: 0; top: calc(100% + 10px); z-index: 1800; min-width: 230px; padding: 8px; border-radius: 16px; background: #2A1206; border: 1px solid rgba(255,138,31,.5); box-shadow: 0 20px 44px rgba(0,0,0,.55); }
 .pg-home .acct-who { display: grid; gap: 2px; padding: 10px 12px 12px; margin-bottom: 4px; border-bottom: 1px solid rgba(255,138,31,.25); }
 .pg-home .acct-who b { font: 800 .95rem 'Poppins', sans-serif; color: #fff !important; }
 .pg-home .acct-who small { font-size: .74rem; color: #FFB067 !important; word-break: break-all; }
@@ -1902,7 +1902,7 @@ html.lenis, html.lenis body { height: auto; }
 .pg-home .acct-pop button.out { color: #fca5a5 !important; }
 .pg-home .nav-account { display: flex; align-items: center; margin-left: 12px; }
 .pg-home .acct-phone { display: none; }
-.pg-home .acct-modal { position: fixed; inset: 0; z-index: 1500; display: grid; place-items: center; padding: 16px; }
+.pg-home .acct-modal { position: fixed; inset: 0; z-index: 1750; display: grid; place-items: center; padding: 16px; }
 .pg-home .acct-backdrop { position: absolute; inset: 0; background: rgba(8,3,1,.72); backdrop-filter: blur(3px); }
 .pg-home .acct-card { position: relative; width: min(440px, 100%); max-height: 92vh; overflow-y: auto; border-radius: 22px; background: #241109; box-shadow: 0 30px 70px rgba(0,0,0,.6); animation: home-cpIn .35s ease both; }
 .pg-home .acct-card .si-card { margin: 0; border-radius: 22px; }

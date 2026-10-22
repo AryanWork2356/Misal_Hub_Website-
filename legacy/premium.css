@@ -832,7 +832,7 @@ html.lenis, html.lenis body { height: auto; }
 .ot-pill.is-done { box-shadow: 0 12px 30px rgba(0,0,0,.5), 0 0 0 1.5px #4ade80; }
 .ot-pill.is-done .ot-pill-ico { background: linear-gradient(135deg, #6ee7a0, #22c55e); }
 
-.ot-sheet { position: fixed; inset: 0; z-index: 1300; visibility: hidden; pointer-events: none; }
+.ot-sheet { position: fixed; inset: 0; z-index: 1700; visibility: hidden; pointer-events: none; }
 .ot-sheet.open { visibility: visible; pointer-events: auto; }
 .ot-backdrop { position: absolute; inset: 0; background: rgba(8,3,1,.65); opacity: 0; transition: opacity .3s; backdrop-filter: blur(2px); }
 .ot-sheet.open .ot-backdrop { opacity: 1; }
@@ -937,7 +937,7 @@ body.order-page .ot-pill { bottom: 96px; }
 .acct-btn.in { border-color: #4ade80; box-shadow: 0 0 0 2px rgba(74,222,128,.25); }
 .acct-initials { display: grid; place-items: center; background: linear-gradient(135deg, #FFB067, #FF8A1F); color: #2A1206 !important; font: 800 .95rem 'Poppins', sans-serif; }
 .acct-dot { position: absolute; right: -1px; top: -1px; width: 12px; height: 12px; border-radius: 50%; background: #FF8A1F; border: 2px solid #1b0d05; animation: waDot 1.6s ease-in-out infinite; }
-.acct-pop { position: absolute; right: 0; top: calc(100% + 10px); z-index: 1400; min-width: 230px; padding: 8px; border-radius: 16px; background: #2A1206; border: 1px solid rgba(255,138,31,.5); box-shadow: 0 20px 44px rgba(0,0,0,.55); }
+.acct-pop { position: absolute; right: 0; top: calc(100% + 10px); z-index: 1800; min-width: 230px; padding: 8px; border-radius: 16px; background: #2A1206; border: 1px solid rgba(255,138,31,.5); box-shadow: 0 20px 44px rgba(0,0,0,.55); }
 .acct-who { display: grid; gap: 2px; padding: 10px 12px 12px; margin-bottom: 4px; border-bottom: 1px solid rgba(255,138,31,.25); }
 .acct-who b { font: 800 .95rem 'Poppins', sans-serif; color: #fff !important; }
 .acct-who small { font-size: .74rem; color: #FFB067 !important; word-break: break-all; }
@@ -946,7 +946,7 @@ body.order-page .ot-pill { bottom: 96px; }
 .acct-pop button.out { color: #fca5a5 !important; }
 .nav-account { display: flex; align-items: center; margin-left: 12px; }
 .acct-phone { display: none; }
-.acct-modal { position: fixed; inset: 0; z-index: 1500; display: grid; place-items: center; padding: 16px; }
+.acct-modal { position: fixed; inset: 0; z-index: 1750; display: grid; place-items: center; padding: 16px; }
 .acct-backdrop { position: absolute; inset: 0; background: rgba(8,3,1,.72); backdrop-filter: blur(3px); }
 .acct-card { position: relative; width: min(440px, 100%); max-height: 92vh; overflow-y: auto; border-radius: 22px; background: #241109; box-shadow: 0 30px 70px rgba(0,0,0,.6); animation: cpIn .35s ease both; }
 .acct-card .si-card { margin: 0; border-radius: 22px; }
