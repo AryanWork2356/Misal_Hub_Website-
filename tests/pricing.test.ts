@@ -5,6 +5,7 @@ import { addressQueries } from '@/lib/addressQueries';
 import { verifyPaymentSignature, verifyWebhookSignature } from '@/lib/server/razorpay';
 import { MENU } from '@/data/menu';
 import { normCode, promoDiscount } from '@/lib/promo';
+import { validMobile } from '@/lib/phone';
 
 describe('delivery fee — the owner rules (₹50 up to 1 km, ₹80 beyond, nothing past 5 km)', () => {
   it('rules in code match what was agreed', () => {
@@ -175,5 +176,29 @@ describe('promo code MISAL10 — flat 10% off the food total, no cap', () => {
     expect(promoDiscount('', 300)).toBeNull();
     expect(promoDiscount('MISAL10', 0)).toBeNull();
     expect(promoDiscount('MISAL10', NaN)).toBeNull();
+  });
+});
+
+describe('mobile number check — real-looking Indian numbers only', () => {
+  it('accepts normal numbers in any common format', () => {
+    expect(validMobile('98201 45678')).toBe('9820145678');
+    expect(validMobile('+91 9930217654')).toBe('9930217654');
+    expect(validMobile('09820145678')).toBe('9820145678');
+    expect(validMobile('7021334455')).toBe('7021334455');
+  });
+  it('rejects wrong lengths and numbers that cannot be mobiles', () => {
+    expect(validMobile('982014567')).toBeNull();
+    expect(validMobile('98201456789')).toBeNull();
+    expect(validMobile('5820145678')).toBeNull();     // must start with 6-9
+    expect(validMobile('')).toBeNull();
+    expect(validMobile(undefined)).toBeNull();
+  });
+  it('rejects obviously made-up numbers', () => {
+    expect(validMobile('9999999999')).toBeNull();
+    expect(validMobile('9898989898')).toBeNull();
+    expect(validMobile('9876543210')).toBeNull();
+    expect(validMobile('9123456789')).toBeNull();
+    expect(validMobile('8888877777')).toBeNull();
+    expect(validMobile('9000000000')).toBeNull();
   });
 });

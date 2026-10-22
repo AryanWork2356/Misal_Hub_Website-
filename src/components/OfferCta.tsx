@@ -16,7 +16,6 @@ export default function OfferCta({ code }: { code: keyof typeof PROMOS & string 
     try {
       if (localStorage.getItem('mh_promo_used') === '1') { setUsed(true); return; }
       localStorage.setItem('mh_promo', code);
-      fetch('/api/offer/claim', { method: 'POST' }).then((r) => r.json()).then((j) => { if (j?.token) localStorage.setItem('mh_offer_token', j.token); }).catch(() => { /* offer simply will not apply */ });
       const src = new URLSearchParams(window.location.search).get('src');
       if (src) localStorage.setItem('mh_src', src.replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 20));
     } catch { /* ignore */ }

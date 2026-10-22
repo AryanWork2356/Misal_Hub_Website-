@@ -5,7 +5,6 @@ import { cleanPhone, cleanText, clientIp, isEmail, json, rateLimit } from '@/lib
 import { createRazorpayOrder } from '@/lib/server/razorpay';
 import { callSheet, notifySheet } from '@/lib/server/sheet';
 import { normCode, promoDiscount } from '@/lib/promo';
-import { verifyOfferToken } from '@/lib/server/offerToken';
 import { getOrderStatus } from '@/lib/server/status';
 
 const makeRef = () => {
@@ -25,7 +24,7 @@ export async function POST(req: Request) {
   if (!paymentsConfigured() && !demo) return json({ ok: false, code: 'not_configured', error: 'Online payment is being set up. Please call us on +91 90041 67448 to order.' }, 503);
 
   let b: {
-    items?: unknown; promo?: unknown; offerToken?: unknown; src?: unknown; type?: unknown; address?: unknown; lat?: unknown; lng?: unknown; notes?: unknown;
+    items?: unknown; promo?: unknown; src?: unknown; type?: unknown; address?: unknown; lat?: unknown; lng?: unknown; notes?: unknown;
     customer?: { name?: unknown; phone?: unknown; email?: unknown };
   };
   try { b = await req.json(); } catch { return json({ ok: false, error: 'Bad request.' }, 400); }
@@ -72,7 +71,6 @@ export async function POST(req: Request) {
   const promoCode = normCode(b.promo);
   let discount = 0;
   if (promoCode) {
-    if (!verifyOfferToken(b.offerToken)) return json({ ok: false, code: 'promo_invalid', error: 'This offer is only available through our offer page. You can still order at the normal price.' }, 400);
     const d = promoDiscount(promoCode, priced.subtotal);
     if (!d) return json({ ok: false, error: 'That offer code is not valid.' }, 400);
     const chk = await callSheet({ action: 'promo_check', phone, code: promoCode });

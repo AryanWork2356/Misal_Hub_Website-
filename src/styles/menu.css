@@ -1633,6 +1633,21 @@ html.lenis, html.lenis body { height: auto; }
 .pg-menu .promo-note { color: #4ade80; }
 
 
+/* ---- closed / paused notices, first-order strip, offers picker (menu + checkout) ---- */
+.pg-menu .closed-banner, .pg-menu .info-banner { display: grid; gap: 4px; margin: 0 0 14px; padding: 14px 16px; border-radius: 14px; font-size: .88rem; line-height: 1.55; }
+.pg-menu .closed-banner { border: 1px solid #ef4444; background: rgba(239,68,68,.13); }
+.pg-menu .closed-banner b { color: #fca5a5; font-size: .98rem; }
+.pg-menu .info-banner { border: 1px solid #f59e0b; background: rgba(245,158,11,.12); }
+.pg-menu .info-banner b { color: #FFC48A; }
+.pg-menu .first-offer { display: inline-flex; align-items: center; gap: 8px; margin: 12px 0 0; padding: 9px 18px; border-radius: 50px; font-size: .88rem; line-height: 1.4;
+  background: linear-gradient(135deg, rgba(255,138,31,.28), rgba(255,138,31,.12)); border: 1px dashed #FF8A1F; }
+.pg-menu .first-offer b { color: #FFB067; }
+.pg-menu .first-offer em { font-style: normal; font-weight: 800; letter-spacing: 1px; color: #4ade80; }
+.pg-menu .offers { margin-bottom: 6px; }
+.pg-menu .offers h3 { margin-bottom: 8px; }
+.pg-menu .promo-select { width: 100%; margin-bottom: 8px; padding: 13px 14px; border-radius: 12px; border: 1px solid rgba(255,138,31,.45); background: rgba(255,255,255,.05); color: inherit; font: 600 .9rem 'Poppins', sans-serif; }
+.pg-menu .promo-select option { background: #2A1206; color: #FFB067; }
+
 /* ============================================================
    MISAL HUB — MENU & ORDER PAGE
    Brown surfaces, orange text.

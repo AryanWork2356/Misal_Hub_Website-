@@ -7,6 +7,7 @@ import { cartServerSnapshot, cartSnapshot, parseCart, subscribeCart, writeCart, 
 import { DELIVERY, SHOP, deliveryQuote, hasModePrice, isOpenNow, rupee, unitPrice, type Mode } from '@/lib/pricing';
 import { useOrderStatus } from '@/lib/useOrderStatus';
 import { normCode, promoDiscount, PROMOS } from '@/lib/promo';
+import { validMobile } from '@/lib/phone';
 
 type Line = { key: string; it: Item; m: Mode; qty: number; price: number };
 type Step = 'cart' | 'details' | 'success';
@@ -94,6 +95,9 @@ export default function MenuApp() {
   const [paid, setPaid] = useState<{ ref: string; total: number } | null>(null);
   const [activeCat, setActiveCat] = useState('');
   const [promo, setPromo] = useState('');            // applied offer code
+  const [promoInput, setPromoInput] = useState('');
+  const [promoMsg, setPromoMsg] = useState('');
+  const [promoBusy, setPromoBusy] = useState(false);
   const [promoUsed, setPromoUsed] = useState(false);   // this customer has already used the first-order offer
 
   const rootRef = useRef<HTMLElement>(null);
@@ -146,13 +150,28 @@ export default function MenuApp() {
   const typeOn = type === 'Delivery' ? ost.delivery : ost.pickup;
   const canPay = open && typeOn && count > 0 && !paying && (type === 'Pickup' || (!!dq && dq.deliverable));
 
+  /* what is closed right now (shop hours, or the owner's manual switch) — shown BEFORE the customer fills anything in */
+  const allPaused = !ost.delivery && !ost.pickup;
+  const blocked = !open || allPaused;
+  const closedLabel = !open ? 'Closed now' : allPaused ? 'Ordering closed' : !typeOn ? (type === 'Delivery' ? 'Delivery closed' : 'Pickup closed') : '';
+  const msg = ost.message ? ` ${ost.message}` : '';
+  const notice = !open ? (
+    <div className="closed-banner" role="status"><b>We are closed right now</b><span>Online orders are open every day from 8 AM to 8 PM. Your cart is saved, so you can order when we open.</span></div>
+  ) : allPaused ? (
+    <div className="closed-banner" role="status"><b>Ordering is closed today</b><span>Delivery and pickup are both paused.{msg} Your cart is saved, so please come back later.</span></div>
+  ) : !ost.delivery ? (
+    <div className="info-banner" role="status"><b>Delivery is closed today</b><span>You can still order for <b>Pickup</b> from our shop.{msg}</span></div>
+  ) : !ost.pickup ? (
+    <div className="info-banner" role="status"><b>Pickup is closed today</b><span>We are delivering as usual. Choose <b>Delivery</b>.{msg}</span></div>
+  ) : null;
+
   /* an offer link (?promo=MISAL10) or the /offer page remembers the code; it is re-checked on the server when paying */
   useEffect(() => {
     try {
       if (localStorage.getItem('mh_promo_used') === '1') { setPromoUsed(true); return; }   // already enjoyed it: never show the offer again
-      /* only people who opened the /offer page hold both the code and the signed token */
+      /* people who scanned the QR / opened /offer have the code saved: apply it for them */
       const code = normCode(localStorage.getItem('mh_promo'));
-      if (code && PROMOS[code] && localStorage.getItem('mh_offer_token')) setPromo(code);
+      if (code && PROMOS[code]) setPromo(code);
     } catch { /* ignore */ }
   }, []);
 
@@ -197,6 +216,9 @@ export default function MenuApp() {
         const el = f.elements.namedItem(k) as HTMLInputElement | null;
         if (el && saved[k]) el.value = saved[k];
       });
+      const q = saved.quote;
+      if (q && typeof q.lat === 'number' && typeof q.lng === 'number' && q.address && q.address === saved.address) setQuote(q);   // delivery already checked last time
+      if (saved.type === 'Pickup') setType('Pickup');
     } catch { /* ignore */ }
   }, []);
 
@@ -267,7 +289,7 @@ export default function MenuApp() {
 
   /* ---------- offer code ---------- */
   function removePromo() {
-    setPromo('');
+    setPromo(''); setPromoMsg('');
     try { localStorage.removeItem('mh_promo'); } catch { /* ignore */ }
   }
   /** the offer has been used (by this device or this phone number): drop it and never show it again */
@@ -275,12 +297,36 @@ export default function MenuApp() {
     removePromo(); setPromoUsed(true);
     try { localStorage.setItem('mh_promo_used', '1'); } catch { /* ignore */ }
   }
+  async function applyPromo(raw: string) {
+    const code = normCode(raw);
+    setPromoMsg('');
+    if (!code) return setPromoMsg('Pick an offer or type a code first.');
+    if (!PROMOS[code]) return setPromoMsg('That code is not valid.');
+    const phone = field('phone');
+    if (!validMobile(phone)) return setPromoMsg('Enter your mobile number above first. The offer is for the first order on each number.');
+    setPromoBusy(true);
+    try {
+      const r = await fetch('/api/promo/check', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code, phone }),
+      });
+      const j = await r.json();
+      if (!j.ok) { if (j.code === 'promo_used') retirePromo(); setPromoMsg(j.error || 'That offer could not be applied.'); return; }
+      setPromo(code); setPromoInput('');
+      try { localStorage.setItem('mh_promo', code); } catch { /* ignore */ }
+    } catch {
+      setPromoMsg('Could not check the offer. Please try again.');
+    } finally {
+      setPromoBusy(false);
+    }
+  }
+
   /* ---------- pay ---------- */
   async function pay() {
     setError('');
     const name = field('name'), phone = field('phone'), email = field('email'), notes = field('notes'), address = field('address');
     if (name.length < 2) return setError('Please enter your name.');
-    if (!/^[6-9]\d{9}$/.test(phone.replace(/\D/g, '').replace(/^91(?=\d{10}$)/, ''))) return setError('Please enter a valid 10-digit mobile number.');
+    if (!validMobile(phone)) return setError('Please enter a real 10-digit mobile number — we call this number about your order.');
     if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) return setError('That email address does not look right.');
     if (type === 'Delivery') {
       if (address.length < 8) return setError('Please enter your full delivery address.');
@@ -293,16 +339,16 @@ export default function MenuApp() {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           items: lines.map((l) => ({ id: l.it.id, mode: l.m, qty: l.qty })),
-          customer: { name, phone, email }, type, notes, promo: promo || undefined, offerToken: promo ? (() => { try { return localStorage.getItem('mh_offer_token') || undefined; } catch { return undefined; } })() : undefined, src: (() => { try { return localStorage.getItem('mh_src') || undefined; } catch { return undefined; } })(),
+          customer: { name, phone, email }, type, notes, promo: promo || undefined, src: (() => { try { return localStorage.getItem('mh_src') || undefined; } catch { return undefined; } })(),
           ...(type === 'Delivery' && quote ? { address, lat: quote.lat, lng: quote.lng } : {}),
         }),
       });
       const j = await res.json();
       if (!j.ok) {
-        if (j.code === 'promo_used') retirePromo(); else if (j.code === 'promo_invalid') removePromo();   // the offer was already used with this number: drop it, the customer can still order
+        if (j.code === 'promo_used') retirePromo();    // the offer was already used with this number: drop it, the customer can still order
         setError(j.error || 'Could not start payment.'); setPaying(false); return;
       }
-      try { localStorage.setItem(CUSTOMER_KEY, JSON.stringify({ name, phone, email, address })); } catch { /* ignore */ }
+      try { localStorage.setItem(CUSTOMER_KEY, JSON.stringify({ name, phone, email, address, quote: type === 'Delivery' ? quote : null, type })); } catch { /* ignore */ }
 
       if (j.demo) {   // TEST MODE (no payment keys yet): the order is already in the Sheet
         writeCart({});
@@ -386,6 +432,9 @@ export default function MenuApp() {
             {open && !ost.delivery && <strong> Delivery is paused right now{ost.message ? ` — ${ost.message}` : ''}.{ost.pickup ? ' Pickup is still available.' : ' Orders are paused.'}</strong>}
             {open && ost.delivery && !ost.pickup && <strong> Pickup is paused right now{ost.message ? ` — ${ost.message}` : ''}.</strong>}
           </p>
+          {!promoUsed && !pd && (
+            <p className="first-offer"><span aria-hidden="true">🎁</span> <b>First order? Get 10% OFF</b> — choose <em>MISAL10</em> at checkout</p>
+          )}
         </div>
       </header>
 
@@ -533,6 +582,7 @@ export default function MenuApp() {
                   </button>
                 </div>
 
+                {notice}
                 <div className="cart-lines">
                   {lines.map((l, i) => (
                     <div className="cl" key={l.key} style={{ '--i': i } as React.CSSProperties}>
@@ -568,16 +618,34 @@ export default function MenuApp() {
           {/* ---- step 2: details ---- */}
           <form id="checkoutForm" ref={formRef} className="order-form" hidden={step !== 'details'} noValidate onSubmit={(e) => { e.preventDefault(); pay(); }}>
             <button type="button" className="cd-back" onClick={() => setStep('cart')}>← Back to your order</button>
+            {notice}
 
             <h3>Contact</h3>
             <label>Name<input name="name" type="text" autoComplete="name" required placeholder="Your name" /></label>
             <label>Phone number<input name="phone" type="tel" inputMode="numeric" autoComplete="tel" required placeholder="10-digit mobile number" /></label>
             <label><span>Email <em className="opt">for your receipt · optional</em></span><input name="email" type="email" autoComplete="email" placeholder="you@example.com" /></label>
 
-            {pd && !promoUsed && (
-              <div className="promo-on" role="status">
-                <span><b>{pd.code}</b> applied · {pd.blurb} — you save <b>{rupee(pd.discount)}</b></span>
-                <button type="button" onClick={removePromo}>Remove</button>
+            {!promoUsed && (
+              <div className="offers">
+                <h3>Offers <em className="opt">first order</em></h3>
+                {pd ? (
+                  <div className="promo-on" role="status">
+                    <span><b>{pd.code}</b> applied · {pd.blurb} — you save <b>{rupee(pd.discount)}</b></span>
+                    <button type="button" onClick={removePromo}>Remove</button>
+                  </div>
+                ) : (
+                  <>
+                    <select className="promo-select" aria-label="Available offers" value="" onChange={(e) => { if (e.target.value) applyPromo(e.target.value); }} disabled={promoBusy}>
+                      <option value="">Choose an offer…</option>
+                      {Object.entries(PROMOS).map(([c, o]) => <option key={c} value={c}>{c} — {o.blurb}</option>)}
+                    </select>
+                    <div className="promo-row">
+                      <input value={promoInput} onChange={(e) => setPromoInput(e.target.value.toUpperCase())} placeholder="or type a code, e.g. MISAL10" autoComplete="off" aria-label="Offer code" />
+                      <button type="button" onClick={() => applyPromo(promoInput)} disabled={promoBusy}>{promoBusy ? 'Checking…' : 'Apply'}</button>
+                    </div>
+                  </>
+                )}
+                {promoMsg && <p className="promo-msg" role="alert">{promoMsg}</p>}
               </div>
             )}
 
@@ -586,16 +654,16 @@ export default function MenuApp() {
               <label className={`otype-card${type === 'Delivery' ? ' on' : ''}`}>
                 <input type="radio" name="type" value="Delivery" checked={type === 'Delivery'} disabled={!ost.delivery} onChange={() => setType('Delivery')} />
                 <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s-7-6.2-7-11a7 7 0 1 1 14 0c0 4.8-7 11-7 11z" /><circle cx="12" cy="10" r="2.5" /></svg>
-                <b>Delivery</b><small>{ost.delivery ? 'To your door' : 'Paused today'}</small>
+                <b>Delivery</b><small>{ost.delivery ? 'To your door' : 'Closed today'}</small>
               </label>
               <label className={`otype-card${type === 'Pickup' ? ' on' : ''}`}>
                 <input type="radio" name="type" value="Pickup" checked={type === 'Pickup'} disabled={!ost.pickup} onChange={() => setType('Pickup')} />
                 <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 8h12l-1 12H7L6 8z" /><path d="M9 8V6a3 3 0 0 1 6 0v2" /></svg>
-                <b>Pickup</b><small>{ost.pickup ? 'From our shop' : 'Paused today'}</small>
+                <b>Pickup</b><small>{ost.pickup ? 'From our shop' : 'Closed today'}</small>
               </label>
             </div>
 
-            <div hidden={type !== 'Delivery'} className="addr-block">
+            <div hidden={type !== 'Delivery' || !ost.delivery} className="addr-block">
               <label>Delivery address
                 <textarea name="address" rows={3} placeholder="Flat / building, street, landmark, area"
                   onChange={() => { if (quote) setQuote(null); setQuoteError(''); }} />
@@ -615,7 +683,7 @@ export default function MenuApp() {
               )}
               {quoteError && <p className="form-error" role="alert">{quoteError}</p>}
             </div>
-            {type === 'Pickup' && <p className="pickup-note">Collect your order at {SHOP.address}. We will have it ready for you.</p>}
+            {type === 'Pickup' && ost.pickup && <p className="pickup-note">Collect your order at {SHOP.address}. We will have it ready for you.</p>}
 
             <label><span>Notes <em className="opt">optional</em></span><textarea name="notes" rows={2} placeholder="Spice level, extra pav, anything else" /></label>
           </form>
@@ -631,9 +699,8 @@ export default function MenuApp() {
                   {discount > 0 && <div className="sum-disc"><span>Offer {promo}</span><b>−{rupee(discount)}</b></div>}
                   <small className="cd-small">Delivery charge is worked out from your address at checkout.</small>
                 </div>
-                {!open && <p className="form-error">We are closed right now. Orders open daily from 8 AM to 8 PM.</p>}
-                <button type="button" className="btn btn-gold full-w btn-next" disabled={count === 0 || !open} onClick={() => { setError(''); setStep('details'); }}>
-                  Continue to checkout <span className="btn-amt">{rupee(sum)}</span>
+                <button type="button" className="btn btn-gold full-w btn-next" disabled={count === 0 || blocked} onClick={() => { setError(''); setStep('details'); }}>
+                  {blocked ? closedLabel : <>Continue to checkout <span className="btn-amt">{rupee(sum)}</span></>}
                 </button>
               </>
             ) : (
@@ -646,7 +713,7 @@ export default function MenuApp() {
                 </div>
                 {error && <p className="form-error" role="alert">{error}</p>}
                 <button type="submit" form="checkoutForm" className="btn btn-gold full-w btn-pay" disabled={!canPay}>
-                  {paying ? 'Opening secure payment…' : `Pay ${rupee(total)} securely`}
+                  {paying ? 'Opening secure payment…' : closedLabel ? closedLabel : `Pay ${rupee(total)} securely`}
                 </button>
                 <p className="secure">
                   <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2" /><path d="M8 11V8a4 4 0 0 1 8 0v3" /></svg>

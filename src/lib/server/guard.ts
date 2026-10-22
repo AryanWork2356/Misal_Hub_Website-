@@ -1,3 +1,4 @@
+import { validMobile } from '@/lib/phone';
 import 'server-only';
 
 /** Best-effort per-instance rate limiter (protects paid map/API quotas from abuse). */
@@ -20,9 +21,7 @@ export const json = (data: unknown, status = 200) =>
 
 /** 10-digit Indian mobile, tolerant of +91 / spaces. */
 export function cleanPhone(raw: unknown): string | null {
-  let d = String(raw ?? '').replace(/\D/g, '');
-  if (d.length === 12 && d.startsWith('91')) d = d.slice(2);
-  return /^[6-9]\d{9}$/.test(d) ? d : null;
+  return validMobile(raw);
 }
 export const cleanText = (v: unknown, max: number) => String(v ?? '').replace(/[\u0000-\u001f\u007f]/g, ' ').trim().slice(0, max);
 export const isEmail = (v: string) => /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(v) && v.length <= 120;
