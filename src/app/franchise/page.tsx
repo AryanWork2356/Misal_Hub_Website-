@@ -29,6 +29,8 @@ const ICONS: Record<string, string> = {
   taste: 'M12 3l2.6 5.6 6 .7-4.5 4.1 1.2 6L12 16.4 6.7 19.4l1.2-6L3.4 9.3l6-.7z',
   tag: 'M3 12V4h8l10 10-8 8zM7.5 8.5h.01',
   pin: 'M12 21s7-6.2 7-11a7 7 0 0 0-14 0c0 4.8 7 11 7 11zM12 12a2.4 2.4 0 1 0 0-4.8 2.4 2.4 0 0 0 0 4.8z',
+  user: 'M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM4 21c0-4 3.6-7 8-7s8 3 8 7',
+  wallet: 'M3 7h16a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2zM3 7l2.5-3H17M16 14h2',
   rider: 'M5 18a3 3 0 1 0 0-.01M19 18a3 3 0 1 0 0-.01M5 18l3-7h5l3 7M13 11l-2-4H8M16 8h3',
 };
 
@@ -41,12 +43,18 @@ function Icon({ name, size = 30 }: { name: string; size?: number }) {
 }
 
 const GET = [
-  ['masala', 'Exclusive Misal Masala', 'The signature masala that makes our misal what it is, made only by us and supplied to every outlet, so the taste stays the same.'],
+  ['masala', 'Exclusive Misal Masala', 'Our signature masala and the complete recipe, step by step. The masala is made only by us and supplied to every outlet, so the taste stays the same.'],
   ['brand', 'The Misal Hub Brand', 'Outside board, banners, menu boards and packaging, all ready to put up from day one.'],
   ['setup', 'Shop Setup Plan', 'A layout, counter and seating plan made for the size of your shop, so the space works from the first day.'],
   ['training', 'Training and Recipes', 'Hands-on training in our Mira Road kitchen: recipes, preparation, serving and customer handling.'],
   ['billing', 'Billing and Sales Tools', 'Billing software and daily sales sheets, so you always know exactly how the outlet is doing.'],
-  ['delivery', 'Delivery and Online Orders', 'Trained Misal Hub delivery riders in uniform, plus help getting listed on Zomato and Swiggy.'],
+  ['delivery', 'Online Orders Sent to You', 'Orders placed on our website come straight to your outlet, and we help you get listed on Zomato and Swiggy too.'],
+] as const;
+
+const SIMPLE = [
+  ['masala', 'The hard part is done for you', 'Our exclusive masala and complete recipe carry the taste, so nothing depends on a star cook.'],
+  ['user', 'A minimal helper is enough', 'You do not need an expensive, experienced cook. With our training, a helper on a modest salary can run the kitchen.'],
+  ['wallet', 'Lower running cost', 'Fewer and lower-paid staff keep your monthly expenses light and your margins healthy.'],
 ] as const;
 
 const STEPS = [
@@ -62,7 +70,7 @@ const STANDARDS = [
   ['taste', 'One taste everywhere', 'The same recipe, the same masala, the same quality in every bowl, in every outlet.'],
   ['tag', 'Protecting the brand', 'Only Misal Hub boards, packaging and menu are used in the shop. No competing brands inside the outlet.'],
   ['pin', 'Locations we approve', 'You suggest the location and we review it, so every outlet has the best chance to succeed.'],
-  ['rider', 'Deliveries you can trust', 'Online orders go out with Misal Hub riders. If three online deliveries are missed, online orders pause for that outlet until it is fixed.'],
+  ['rider', 'Your own delivery riders', 'Every outlet must have its own delivery riders in Misal Hub uniform, because website orders are delivered by the outlet. If three online deliveries are missed, online orders pause for that outlet until it is fixed.'],
 ] as const;
 
 const INVEST = [
@@ -147,8 +155,27 @@ export default function FranchisePage() {
         </div>
       </section>
 
-      {/* ===== HOW IT WORKS ===== */}
+      {/* ===== SIMPLE TO RUN ===== */}
       <section className="fr2-section fr2-alt">
+        <div className="container">
+          <div className="fr2-head reveal">
+            <span>SIMPLE TO RUN</span>
+            <h2>No expert cook. <em>No big payroll.</em></h2>
+          </div>
+          <div className="fr2-grid">
+            {SIMPLE.map(([ic, h, p]) => (
+              <div key={h} className="fr2-card reveal">
+                <div className="fr2-ico"><Icon name={ic} /></div>
+                <h3>{h}</h3>
+                <p>{p}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ===== HOW IT WORKS ===== */}
+      <section className="fr2-section">
         <div className="container">
           <div className="fr2-head reveal">
             <span>HOW IT WORKS</span>
@@ -167,7 +194,7 @@ export default function FranchisePage() {
       </section>
 
       {/* ===== STANDARDS ===== */}
-      <section className="fr2-section">
+      <section className="fr2-section fr2-alt">
         <div className="container">
           <div className="fr2-head reveal">
             <span>OUR STANDARDS</span>
@@ -188,7 +215,7 @@ export default function FranchisePage() {
       </section>
 
       {/* ===== INVESTMENT ===== */}
-      <section className="fr2-section fr2-alt" id="investment">
+      <section className="fr2-section" id="investment">
         <div className="container">
           <div className="fr2-head reveal">
             <span>INVESTMENT</span>

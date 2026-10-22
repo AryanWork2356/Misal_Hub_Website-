@@ -216,6 +216,14 @@ export const FRANCHISE_FAQ: Faq[] = [
     a: 'The one-time franchise fee is ₹4,00,000, plus a refundable security deposit of ₹1,00,000. Shop setup is paid separately and depends on the size of your shop; after your location is approved we give you a clear quote before you commit. Our first 10 partners also pay no monthly royalty.',
   },
   {
+    q: 'Do I need my own delivery boys?',
+    a: 'Yes. Orders placed on the Misal Hub website are delivered by the outlet, so every franchise must have its own delivery riders in Misal Hub uniform. We also help you get listed on Zomato and Swiggy.',
+  },
+  {
+    q: 'Do I need an experienced cook?',
+    a: 'No. We provide our exclusive misal masala and the complete recipe, and we train your team in our kitchen. A minimal helper on a modest salary can run the kitchen, so you do not need to hire an expensive cook.',
+  },
+  {
     q: 'Is the deposit refundable?',
     a: 'Yes. The ₹1,00,000 security deposit is held for the term of the franchise agreement and returned as set out in the agreement.',
   },
