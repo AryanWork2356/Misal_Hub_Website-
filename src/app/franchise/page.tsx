@@ -43,7 +43,7 @@ function Icon({ name, size = 30 }: { name: string; size?: number }) {
 const GET = [
   ['masala', 'Exclusive Misal Masala', 'The signature masala that makes our misal what it is, made only by us and supplied to every outlet, so the taste stays the same.'],
   ['brand', 'The Misal Hub Brand', 'Outside board, banners, menu boards and packaging, all ready to put up from day one.'],
-  ['setup', 'Shop Setup at Our Rates', 'Counter, tables and chairs sourced through our suppliers at supplier rates, so you do not overpay.'],
+  ['setup', 'Shop Setup Plan', 'A layout, counter and seating plan made for the size of your shop, so the space works from the first day.'],
   ['training', 'Training and Recipes', 'Hands-on training in our Mira Road kitchen: recipes, preparation, serving and customer handling.'],
   ['billing', 'Billing and Sales Tools', 'Billing software and daily sales sheets, so you always know exactly how the outlet is doing.'],
   ['delivery', 'Delivery and Online Orders', 'Trained Misal Hub delivery riders in uniform, plus help getting listed on Zomato and Swiggy.'],
@@ -52,8 +52,8 @@ const GET = [
 const STEPS = [
   ['1', 'Apply', 'Fill in the short form below.'],
   ['2', 'We call you', 'Within 24 hours, to understand your plan.'],
-  ['3', 'Location approval', 'You suggest a location, we make the final decision.'],
-  ['4', 'Agreement and setup', 'Sign the agreement; we set up the shop.'],
+  ['3', 'Location approval', 'You suggest a location and its size, we make the final decision.'],
+  ['4', 'Agreement and setup', 'Sign the agreement; we plan your shop setup.'],
   ['5', 'Training and launch', 'We train your team and open your outlet.'],
 ] as const;
 
@@ -68,7 +68,7 @@ const STANDARDS = [
 const INVEST = [
   ['Franchise fee', '₹4,00,000', 'One time', 'Brand licence, our exclusive masala supply, training and launch support.', true],
   ['Security deposit', '₹1,00,000', 'Refundable', 'Held for the term of the agreement and returned as set out in it.', false],
-  ['Shop setup', 'At cost', 'Paid separately', 'Counter, tables, chairs and boards, sourced through our suppliers at supplier rates. We quote it before you commit.', false],
+  ['Shop setup', 'By shop size', 'Quoted separately', 'Setup depends on the size of your shop. After your location is approved we plan it and give you a clear quote before you commit.', false],
 ] as const;
 
 const POINTS = [
@@ -91,7 +91,7 @@ export default function FranchisePage() {
             <div className="mb-breadcrumb"><Link href="/">Home</Link> › <span>Franchise</span></div>
             <span className="fr2-eyebrow">FRANCHISE OPPORTUNITY</span>
             <h1 className="fr2-title">Own a <em>Misal Hub</em></h1>
-            <p className="fr2-lead">Bring authentic Maharashtrian misal pav to your neighbourhood with a brand Mira Road has trusted since 2015, backed by our own masala, a ready shop setup and hands-on training.</p>
+            <p className="fr2-lead">Bring authentic Maharashtrian misal pav to your neighbourhood with a brand Mira Road has trusted since 2015, backed by our own masala, a shop setup plan and hands-on training.</p>
             <div className="fr2-cta">
               <a href="#apply" className="btn btn-gold">Apply now</a>
               <a href="#get" className="fr2-ghost">See what you get</a>

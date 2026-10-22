@@ -213,7 +213,7 @@ export const FRANCHISE_FAQ: Faq[] = [
   },
   {
     q: 'How much does it cost to open a Misal Hub?',
-    a: 'The one-time franchise fee is ₹4,00,000, plus a refundable security deposit of ₹1,00,000. Shop setup (counter, tables, chairs and boards) is paid separately and sourced at supplier rates; we quote it before you commit. Our first 10 partners also pay no monthly royalty.',
+    a: 'The one-time franchise fee is ₹4,00,000, plus a refundable security deposit of ₹1,00,000. Shop setup is paid separately and depends on the size of your shop; after your location is approved we give you a clear quote before you commit. Our first 10 partners also pay no monthly royalty.',
   },
   {
     q: 'Is the deposit refundable?',
