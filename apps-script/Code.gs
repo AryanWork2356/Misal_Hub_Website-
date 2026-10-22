@@ -45,6 +45,14 @@ function esc_(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, functio
 function cell_(v) { var s = String(v == null ? '' : v); return /^[=+\-@]/.test(s) ? "'" + s : s; }
 function shopEmail_() { return prop_('NOTIFY_EMAIL') || Session.getEffectiveUser().getEmail(); }
 
+/** Progress dropdown on every row (existing and future) + a readable date/time format for "ETA set at". Safe to run any number of times. */
+function formatOrders_(sh) {
+  var list = SpreadsheetApp.newDataValidation().requireValueInList(['Preparing', 'Out for delivery', 'Ready for pickup', 'Delivered', 'Cancelled'], true).setAllowInvalid(true).build();
+  var rows = Math.max(sh.getMaxRows() - 1, 1);
+  sh.getRange(2, 22, rows, 1).setDataValidation(list);
+  sh.getRange(2, 24, rows, 1).setNumberFormat('dd-mmm hh:mm:ss');
+}
+
 function sheet_(name, headers) {
   var ss = SpreadsheetApp.getActiveSpreadsheet();
   var sh = ss.getSheetByName(name);
@@ -53,6 +61,7 @@ function sheet_(name, headers) {
     if (have > 0 && have < headers.length) {
       sh.getRange(1, have + 1, 1, headers.length - have).setValues([headers.slice(have)]).setFontWeight('bold').setBackground('#FFE0B8');
     }
+    if (sh.getLastColumn() >= 24 && !sh.getRange(2, 22).getDataValidation()) formatOrders_(sh);
   }
   if (!sh) {
     sh = ss.insertSheet(name);
@@ -123,11 +132,22 @@ function customerSave_(d) {
   return { ok: true };
 }
 
+/** Whatever is in the Progress cell -> one of the five known states (so "Done", "delivered", "on the way" all work). */
+function normProgress_(v) {
+  var t = String(v || '').toLowerCase().trim();
+  if (!t) return 'Preparing';
+  if (/cancel/.test(t)) return 'Cancelled';
+  if (/deliver|done|complete|picked|collected|finish/.test(t) && !/out for|on the way/.test(t)) return 'Delivered';
+  if (/out for|on the way|way|dispatch|rider|left|pick ?up from rider/.test(t)) return 'Out for delivery';
+  if (/ready/.test(t)) return 'Ready for pickup';
+  return 'Preparing';
+}
+
 /** The shape the tracker needs, from one Orders row. */
 function orderView_(r) {
   var mins = Number(r[22]), at = r[23];
   var etaAt = (mins > 0 && at instanceof Date) ? at.getTime() + mins * 60000 : null;
-  return { ok: true, ref: String(r[1]), progress: String(r[21] || 'Preparing'), items: String(r[13] || ''), total: r[16], type: String(r[9] || ''), address: String(r[10] || ''),
+  return { ok: true, ref: String(r[1]), progress: normProgress_(r[21]), items: String(r[13] || ''), total: r[16], type: String(r[9] || ''), address: String(r[10] || ''),
     etaAt: etaAt, etaMin: mins > 0 ? mins : null, note: String(r[24] || ''), serverNow: new Date().getTime() };
 }
 
@@ -143,7 +163,7 @@ function activeOrder_(q) {
     var r = rows[i];
     if (String(r[8]).trim().toLowerCase() !== email || String(r[2]).indexOf('Paid') !== 0) continue;
     if (!(r[0] instanceof Date)) continue;
-    var prog = String(r[21] || 'Preparing');
+    var prog = normProgress_(r[21]);
     var finished = prog === 'Delivered' || prog === 'Cancelled';
     if (now - r[0].getTime() > (finished ? 3 : 12) * 60 * 60 * 1000) return { ok: true };   // too old: nothing to show
     return orderView_(r);                                                                   // the latest paid order decides
@@ -164,7 +184,7 @@ function track_(q) {
   if (String(r[7]).replace(/\D/g, '').slice(-10) !== want || String(r[2]).indexOf('Paid') !== 0) return { ok: false, error: 'not found' };
   var mins = Number(r[22]), at = r[23];
   var etaAt = (mins > 0 && at instanceof Date) ? at.getTime() + mins * 60000 : null;
-  return { ok: true, ref: ref, progress: String(r[21] || 'Preparing'), items: String(r[13] || ''), total: r[16], type: String(r[9] || ''), address: String(r[10] || ''),
+  return { ok: true, ref: ref, progress: normProgress_(r[21]), items: String(r[13] || ''), total: r[16], type: String(r[9] || ''), address: String(r[10] || ''),
     etaAt: etaAt, etaMin: mins > 0 ? mins : null, note: String(r[24] || ''), serverNow: new Date().getTime() };
 }
 
@@ -363,7 +383,7 @@ function bulk_(d) {
 
 /** Run once from the editor: creates the sheets and sends a test e-mail to NOTIFY_EMAIL. */
 function selfTest() {
-  sheet_(ORDERS, ORDER_HEADERS); sheet_(FRANCHISE, FRANCHISE_HEADERS); sheet_(BULK, BULK_HEADERS); sheet_(CUSTOMERS, CUSTOMER_HEADERS); settingsSheet_();
+  formatOrders_(sheet_(ORDERS, ORDER_HEADERS)); sheet_(FRANCHISE, FRANCHISE_HEADERS); sheet_(BULK, BULK_HEADERS); sheet_(CUSTOMERS, CUSTOMER_HEADERS); settingsSheet_();
   MailApp.sendEmail(shopEmail_(), 'Misal Hub website: test e-mail', 'If you can read this, order and franchise e-mails will reach you.');
   Logger.log('OK - sheets (Orders, Franchise Applications, Bulk Orders, Customers, Settings) created and test e-mail sent to ' + shopEmail_());
 }
