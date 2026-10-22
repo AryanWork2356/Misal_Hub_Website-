@@ -13,7 +13,7 @@ Details of the external accounts are in `docs/SETUP.md`; the run/architecture no
 
 ## Owner's working rules (follow these)
 
-1. The owner (Aryan) writes **Hinglish** and wants things fast, attractive and professional. Reply in simple Hinglish, short.
+1. The owner (Aryan) wants things fast, attractive and professional. They sometimes write Hinglish and sometimes English. **Reply in the language their latest message is written in**; do not switch language on your own. Keep replies short and plain.
 2. **Commit and push to GitHub after every change**, without being asked. Only this repo. Commit message ends with the Co-Authored-By line the harness gives.
 3. **Never put secrets in the repo** (no API keys, tokens, passwords, `.env.local`). The owner once pasted a GitHub token in chat; it should be deleted/revoked on GitHub.
 4. **Ask before changing** anything the owner said is better handled on their side (accounts, KYC, legal wording, pricing decisions).
