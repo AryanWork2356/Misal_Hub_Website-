@@ -71,6 +71,8 @@ export default function OrderTracker() {
   const big = left != null && left > 0 ? String(left) : null;
   const frac = order.etaMin && left != null ? Math.max(0, Math.min(1, left / order.etaMin)) : 1;
   const C = 2 * Math.PI * 54;
+  const travel = finished ? 1 : step >= 2 ? (order.etaMin && left != null ? Math.max(0.06, Math.min(0.94, 1 - left / order.etaMin)) : 0.4) : 0;
+  const scene = finished ? 'done' : step >= 2 ? 'ride' : 'cook';
   const lines = (order.items || '').split('\n').map((l) => l.trim()).filter(Boolean);
 
   const done = () => { try { localStorage.setItem('mh_dismissed_order', order.ref); } catch { /* ignore */ } setOpen(false); setOrder(null); };
@@ -78,7 +80,7 @@ export default function OrderTracker() {
   return (
     <>
       <button type="button" className={`ot-pill${finished ? ' is-done' : ''}`} onClick={() => setOpen(true)} aria-label={`Track your order: ${pill}`}>
-        <span className="ot-pill-ico" aria-hidden="true">{finished ? '✓' : '🛵'}</span>
+        <span className="ot-pill-ico" aria-hidden="true">{finished ? '✓' : <span className="ot-bike">🛵</span>}</span>
         <span className="ot-pill-txt"><small>{finished ? 'Your order' : 'Track order'}</small><b>{pill}</b></span>
         {!finished && <i className="ot-pulse" aria-hidden="true" />}
       </button>
@@ -99,13 +101,22 @@ export default function OrderTracker() {
                 <div className="ot-eta">
                   <div className="ot-ring" aria-hidden="true">
                     <svg viewBox="0 0 120 120"><circle className="trk" cx="60" cy="60" r="54" /><circle className="bar" cx="60" cy="60" r="54" strokeDasharray={C} strokeDashoffset={C * (1 - (finished ? 1 : frac))} /></svg>
-                    <div>{finished ? <span className="ot-big ok">{cancelled ? '✕' : '✓'}</span> : big ? <><span className="ot-big">{big}</span><small>min</small></> : <span className="ot-soon">{left == null ? '…' : '≈'}</span>}</div>
+                    <div>{finished ? <span className="ot-big ok">{cancelled ? '✕' : '✓'}</span> : big ? <><span className="ot-big flip" key={big}>{big}</span><small>min</small></> : <span className="ot-soon">{left == null ? '…' : '≈'}</span>}</div>
                   </div>
                   <div className="ot-eta-txt">
                     <b>{cancelled ? 'This order was cancelled' : finished ? (isPickup ? 'Enjoy your meal!' : 'Delivered. Enjoy your meal!') : left == null ? 'We are confirming your time' : left > 0 ? (isPickup ? 'Ready for pickup in about' : 'Arriving in about') : 'Almost there'}</b>
                     <span>{cancelled ? `Please call us on ${SHOP.phone}.` : finished ? 'Thank you for ordering from Misal Hub 🧡' : left == null ? 'Your delivery time will appear here in a moment.' : left > 0 ? `${left} ${left === 1 ? 'minute' : 'minutes'} to go` : 'Your order should reach you any moment now.'}</span>
                   </div>
                 </div>
+
+                {!cancelled && (
+                  <div className={`ot-scene s-${scene}${isPickup ? ' pick' : ''}`} aria-hidden="true">
+                    <span className="ot-pt shop"><b>🍲</b><em>Misal Hub</em><i className="steam s1" /><i className="steam s2" /><i className="steam s3" /></span>
+                    {isPickup ? <div className="ot-road pickup"><span className="ot-lane" /></div> : <div className="ot-road"><span className="ot-lane" /><span className="ot-rider" style={{ left: `${travel * 100}%` }}>🛵</span></div>}
+                    <span className="ot-pt home"><b>{isPickup ? '🛍️' : '🏠'}</b><em>{isPickup ? 'Your order' : 'You'}</em></span>
+                    {finished && Array.from({ length: 16 }, (_, i) => <u key={i} className="conf" style={{ '--dx': `${((i * 53) % 120) - 60}px`, '--dy': `${-30 - ((i * 29) % 70)}px`, '--c': i % 4, '--d': `${(i % 5) * 60}ms` } as React.CSSProperties} />)}
+                  </div>
+                )}
 
                 {order.note && <div className="ot-note"><span aria-hidden="true">💬</span><p>{order.note}</p></div>}
 
@@ -117,7 +128,7 @@ export default function OrderTracker() {
 
                 <div className="ot-items">
                   <h4>What you ordered</h4>
-                  <ul>{lines.map((l, i) => <li key={i}>{l}</li>)}</ul>
+                  <ul>{lines.map((l, i) => <li key={i} style={{ '--i': i } as React.CSSProperties}>{l}</li>)}</ul>
                   <div className="ot-total"><span>Total paid</span><b>₹{order.total}</b></div>
                   <p className="ot-where">{isPickup ? `Pickup from ${SHOP.address}` : order.address ? `Delivering to ${order.address}` : ''}</p>
                 </div>

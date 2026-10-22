@@ -1915,6 +1915,64 @@ html.lenis, html.lenis body { height: auto; }
   .pg-menu .navbar .nav-inner { gap: 8px; }
 }
 
+/* =====================================================================
+   TRACKER MOTION — delivery scene, flipping minutes, glowing ring, staggered items
+   ===================================================================== */
+.pg-menu .ot-scene { position: relative; display: grid; grid-template-columns: 64px 1fr 64px; align-items: end; gap: 6px; padding: 18px 12px 12px; border-radius: 20px; overflow: hidden;
+  background: linear-gradient(180deg, rgba(255,138,31,.16), rgba(255,255,255,.02) 70%); border: 1px solid rgba(255,138,31,.28); }
+.pg-menu .ot-scene::before { content: ''; position: absolute; inset: 0; background: radial-gradient(circle at 20% 0%, rgba(255,176,103,.25), transparent 55%); pointer-events: none; }
+.pg-menu .ot-pt { position: relative; display: grid; justify-items: center; gap: 2px; z-index: 1; }
+.pg-menu .ot-pt b { font-size: 2.1rem; line-height: 1; filter: drop-shadow(0 6px 8px rgba(0,0,0,.45)); }
+.pg-menu .ot-pt em { font: 700 .62rem 'Poppins', sans-serif; font-style: normal; letter-spacing: .5px; color: #FFB067 !important; white-space: nowrap; }
+.pg-menu .ot-road { position: relative; height: 44px; margin-bottom: 14px; }
+.pg-menu .ot-lane { position: absolute; left: 0; right: 0; bottom: 6px; height: 4px; border-radius: 4px; background: repeating-linear-gradient(90deg, rgba(255,224,184,.7) 0 14px, transparent 14px 28px); opacity: .55; }
+.pg-menu .s-ride .ot-lane { animation: menu-otRoad .7s linear infinite; }
+@keyframes menu-otRoad { to { background-position: -28px 0; } }
+.pg-menu .ot-rider { position: absolute; bottom: 6px; font-size: 1.9rem; line-height: 1; transform: translateX(-50%); transition: left 1.6s cubic-bezier(.4,.1,.3,1); filter: drop-shadow(0 6px 6px rgba(0,0,0,.5)); }
+.pg-menu .s-ride .ot-rider { animation: menu-otBounce .5s ease-in-out infinite alternate; }
+.pg-menu .s-cook .ot-rider { animation: menu-otIdle 2.6s ease-in-out infinite; }
+@keyframes menu-otBounce { from { margin-bottom: 0; } to { margin-bottom: 4px; } }
+@keyframes menu-otIdle { 0%, 100% { margin-bottom: 0; } 50% { margin-bottom: 2px; } }
+.pg-menu .s-ride .ot-rider::before { content: ''; position: absolute; right: 100%; top: 55%; width: 22px; height: 3px; border-radius: 3px; background: linear-gradient(270deg, rgba(255,224,184,.7), transparent); animation: menu-otWind .6s linear infinite; }
+@keyframes menu-otWind { 0% { opacity: .9; transform: translateX(0); } 100% { opacity: 0; transform: translateX(-14px); } }
+.pg-menu .s-cook .ot-pt.shop b { animation: menu-otPot 1.8s ease-in-out infinite; transform-origin: 50% 80%; }
+@keyframes menu-otPot { 0%, 100% { transform: rotate(-3deg); } 50% { transform: rotate(3deg); } }
+.pg-menu .steam { position: absolute; top: -4px; width: 6px; height: 16px; border-radius: 6px; background: linear-gradient(180deg, rgba(255,255,255,.75), transparent); opacity: 0; }
+.pg-menu .steam.s1 { left: 22px; } .pg-menu .steam.s2 { left: 30px; } .pg-menu .steam.s3 { left: 38px; }
+.pg-menu .s-cook .steam { animation: menu-otSteam 2.2s ease-in infinite; }
+.pg-menu .s-cook .steam.s2 { animation-delay: .7s; } .pg-menu .s-cook .steam.s3 { animation-delay: 1.4s; }
+@keyframes menu-otSteam { 0% { opacity: 0; transform: translateY(8px) scaleY(.6); } 35% { opacity: .9; } 100% { opacity: 0; transform: translateY(-18px) scaleY(1.3) translateX(4px); } }
+.pg-menu .s-ride .ot-pt.home b, .pg-menu .s-cook .ot-pt.home b { animation: menu-otHome 2.4s ease-in-out infinite; }
+@keyframes menu-otHome { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-3px); } }
+.pg-menu .s-done .ot-pt.home b { animation: menu-otArrive .7s cubic-bezier(.2,1.5,.4,1) both; }
+@keyframes menu-otArrive { 0% { transform: scale(.7); } 60% { transform: scale(1.25); } 100% { transform: scale(1); } }
+.pg-menu .ot-road.pickup .ot-lane { opacity: .35; }
+.pg-menu .s-done .ot-pt.shop b { opacity: .85; }
+.pg-menu .conf { position: absolute; right: 38px; bottom: 34px; width: 7px; height: 11px; border-radius: 2px; opacity: 0; z-index: 2; animation: menu-otConf 1.5s ease-out both; animation-delay: var(--d); }
+.pg-menu .conf:nth-of-type(4n+1) { background: #FF8A1F; } .pg-menu .conf:nth-of-type(4n+2) { background: #4ade80; } .pg-menu .conf:nth-of-type(4n+3) { background: #FFD9A8; } .pg-menu .conf:nth-of-type(4n) { background: #60a5fa; }
+@keyframes menu-otConf { 0% { opacity: 1; transform: translate(0, 0) rotate(0); } 100% { opacity: 0; transform: translate(var(--dx), var(--dy)) rotate(520deg); } }
+
+/* the minutes flip in when they change; the ring glows and a spark orbits it */
+.pg-menu .ot-big.flip { display: inline-block; animation: menu-otFlip .55s cubic-bezier(.2,1.2,.4,1) both; }
+@keyframes menu-otFlip { 0% { transform: translateY(-60%) rotateX(80deg); opacity: 0; } 100% { transform: none; opacity: 1; } }
+.pg-menu .ot-ring::before { content: ''; position: absolute; inset: -6px; border-radius: 50%; background: conic-gradient(from 0deg, transparent 0 80%, rgba(255,176,103,.9) 95%, transparent); -webkit-mask: radial-gradient(circle, transparent 60%, #000 62%); mask: radial-gradient(circle, transparent 60%, #000 62%); animation: menu-ofSpin 3.2s linear infinite; opacity: .8; }
+.pg-menu .ot-ring .bar { animation: menu-otGlow 2.4s ease-in-out infinite; }
+@keyframes menu-otGlow { 0%, 100% { filter: drop-shadow(0 0 4px rgba(255,138,31,.5)); } 50% { filter: drop-shadow(0 0 12px rgba(255,138,31,1)); } }
+.pg-menu .ot-eta { position: relative; overflow: hidden; }
+.pg-menu .ot-eta::after { content: ''; position: absolute; top: 0; bottom: 0; width: 30%; left: -50%; background: linear-gradient(100deg, transparent, rgba(255,255,255,.12), transparent); animation: menu-cpShine 5s ease-in-out infinite; pointer-events: none; }
+.pg-menu .ot-sheet.open .ot-items li { animation: menu-otRise .55s ease both; animation-delay: calc(var(--i, 0) * 80ms + .25s); }
+@keyframes menu-otRise { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+.pg-menu .ot-sheet.open .ot-steps li { animation: menu-otRise .5s ease both; }
+.pg-menu .ot-steps li:nth-child(2) { animation-delay: .08s; } .pg-menu .ot-steps li:nth-child(3) { animation-delay: .16s; } .pg-menu .ot-steps li:nth-child(4) { animation-delay: .24s; }
+.pg-menu .ot-steps li.done::before, .pg-menu .ot-steps li.now::before { background: linear-gradient(90deg, #FF8A1F, #FFB067, #FF8A1F); background-size: 200% 100%; animation: menu-ofShine 2.4s linear infinite; }
+.pg-menu .ot-bike { display: inline-block; animation: menu-otPillRide 1.6s ease-in-out infinite; }
+@keyframes menu-otPillRide { 0%, 100% { transform: translateX(-2px) rotate(-4deg); } 50% { transform: translateX(3px) rotate(3deg); } }
+@media (max-width: 480px) { .pg-menu .ot-scene { grid-template-columns: 54px 1fr 54px; padding: 16px 8px 10px; } .pg-menu .ot-pt b { font-size: 1.8rem; } }
+@media (prefers-reduced-motion: reduce) {
+  .pg-menu .ot-scene *, .pg-menu .ot-ring::before, .pg-menu .ot-ring .bar, .pg-menu .ot-eta::after, .pg-menu .ot-big.flip, .pg-menu .ot-bike, .pg-menu .conf, .pg-menu .ot-steps li, .pg-menu .ot-items li { animation: none !important; }
+  .pg-menu .ot-rider { transition: none; } .pg-menu .ot-items li, .pg-menu .ot-steps li { opacity: 1 !important; }
+}
+
 /* ============================================================
    MISAL HUB — MENU & ORDER PAGE
    Brown surfaces, orange text.
