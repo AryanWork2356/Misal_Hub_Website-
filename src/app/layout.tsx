@@ -8,7 +8,7 @@ import './globals.css';
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   title: { default: 'Misal Hub – Best Misal Pav in Mira Road East | Order Online', template: '%s | Misal Hub' },
-  description: 'Misal Hub serves authentic Maharashtrian Misal Pav in Mira Road East since 2015. Order online for home delivery, or own a Misal Hub franchise.',
+  description: 'Hot, fresh Maharashtrian misal pav since 2015 in Mira Road East. Order online for home delivery within 5 km, with Jain options, bulk orders and franchise opportunities.',
   applicationName: 'Misal Hub',
   keywords: KEYWORDS,
   authors: [{ name: 'Misal Hub' }],
@@ -16,7 +16,6 @@ export const metadata: Metadata = {
   publisher: 'Misal Hub',
   category: 'restaurant',
   alternates: { canonical: '/' },
-  icons: { icon: '/images/logo-round.png', apple: '/images/logo-round.png' },
   openGraph: {
     type: 'website', siteName: 'Misal Hub', locale: 'en_IN', url: '/',
     title: 'Misal Hub – Best Misal Pav in Mira Road East',

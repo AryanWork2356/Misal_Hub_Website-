@@ -13,7 +13,7 @@ import '@/styles/franchise.css';
 
 export const metadata: Metadata = pageMeta({
   title: 'Misal Hub Franchise – Own a Misal Pav Outlet (FOFO Model)',
-  description: 'Own a Misal Hub franchise: authentic Maharashtrian Misal Pav, a simple focused menu and a proven brand since 2015. Apply online and our team will call you within 24 hours.',
+  description: 'Start your own Misal Hub: a proven Maharashtrian brand since 2015, a simple focused menu and full guidance. Apply online and our team calls you within 24 hours.',
   path: '/franchise',
   absoluteTitle: true,
 });

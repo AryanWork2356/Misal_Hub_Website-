@@ -12,8 +12,8 @@ import { pageMeta, breadcrumbSchema } from '@/lib/seo';
 import '@/styles/about.css';
 
 export const metadata: Metadata = pageMeta({
-  title: 'Bulk & Party Orders – Misal Pav for 10 to 100+ people | Mira Road East',
-  description: 'Planning a birthday, office lunch, puja or family function? Order Misal Pav and Maharashtrian snacks in bulk from Misal Hub, Mira Road East. Tell us your event and we will call you with a quote.',
+  title: 'Bulk & Party Orders – Misal Pav for 10 to 100+ People | Misal Hub',
+  description: 'Birthday, office lunch, puja or family function? Order hot misal pav and Maharashtrian snacks in bulk from Misal Hub, Mira Road East. Share your event and get a quote.',
   path: '/bulk-orders',
   absoluteTitle: true,
 });

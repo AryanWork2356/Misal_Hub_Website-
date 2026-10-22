@@ -10,8 +10,8 @@ import { pageMeta, menuSchema, breadcrumbSchema } from '@/lib/seo';
 import '@/styles/menu.css';
 
 export const metadata: Metadata = pageMeta({
-  title: 'Menu & Order Online – Misal Pav, Thali, Vada Pav | Mira Road East',
-  description: 'See the full Misal Hub menu with prices: Misal Pav, Fry Misal, Misal Thali, Usal Pav, Vada Pav, Sandwiches, Beverages and Jain options. Order online for delivery in Mira Road.',
+  title: 'Misal Pav Menu & Online Order – Mira Road East | Misal Hub',
+  description: 'Full Misal Hub menu with prices: misal pav, fry misal, thali, vada pav, sandwiches and Jain options. Order online for hot, fresh delivery in Mira Road East.',
   path: '/menu',
   absoluteTitle: true,
 });
