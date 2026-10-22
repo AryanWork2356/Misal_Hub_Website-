@@ -98,7 +98,6 @@ export default function MenuApp() {
   const [promoInput, setPromoInput] = useState('');
   const [promoMsg, setPromoMsg] = useState('');
   const [promoBusy, setPromoBusy] = useState(false);
-  const [promoUsed, setPromoUsed] = useState(false);   // this customer has already used the first-order offer
 
   const rootRef = useRef<HTMLElement>(null);
   const tabsRef = useRef<HTMLDivElement>(null);
@@ -168,7 +167,6 @@ export default function MenuApp() {
   /* an offer link (?promo=MISAL10) or the /offer page remembers the code; it is re-checked on the server when paying */
   useEffect(() => {
     try {
-      if (localStorage.getItem('mh_promo_used') === '1') { setPromoUsed(true); return; }   // already enjoyed it: never show the offer again
       /* people who scanned the QR / opened /offer have the code saved: apply it for them */
       const code = normCode(localStorage.getItem('mh_promo'));
       if (code && PROMOS[code]) setPromo(code);
@@ -292,18 +290,16 @@ export default function MenuApp() {
     setPromo(''); setPromoMsg('');
     try { localStorage.removeItem('mh_promo'); } catch { /* ignore */ }
   }
-  /** the offer has been used (by this device or this phone number): drop it and never show it again */
-  function retirePromo() {
-    removePromo(); setPromoUsed(true);
-    try { localStorage.setItem('mh_promo_used', '1'); } catch { /* ignore */ }
-  }
+  /** this phone number has already had the offer: take it off this order (the customer can still order) */
+  function retirePromo() { removePromo(); }
   async function applyPromo(raw: string) {
     const code = normCode(raw);
     setPromoMsg('');
     if (!code) return setPromoMsg('Pick an offer or type a code first.');
     if (!PROMOS[code]) return setPromoMsg('That code is not valid.');
     const phone = field('phone');
-    if (!validMobile(phone)) return setPromoMsg('Enter your mobile number above first. The offer is for the first order on each number.');
+    if (!phone.trim()) return setPromoMsg('Enter your mobile number above first. The offer is for the first order on each number.');
+    if (!validMobile(phone)) return setPromoMsg('That does not look like a real 10-digit mobile number. Please check it.');
     setPromoBusy(true);
     try {
       const r = await fetch('/api/promo/check', {
@@ -432,7 +428,8 @@ export default function MenuApp() {
             {open && !ost.delivery && <strong> Delivery is paused right now{ost.message ? ` — ${ost.message}` : ''}.{ost.pickup ? ' Pickup is still available.' : ' Orders are paused.'}</strong>}
             {open && ost.delivery && !ost.pickup && <strong> Pickup is paused right now{ost.message ? ` — ${ost.message}` : ''}.</strong>}
           </p>
-          {!promoUsed && !pd && (
+          <p className="bulk-strip"><span aria-hidden="true">🍽️</span> Ordering for a party or office? <Link href="/bulk-orders">Bulk orders →</Link></p>
+          {!pd && (
             <p className="first-offer"><span aria-hidden="true">🎁</span> <b>First order? Get 10% OFF</b> — choose <em>MISAL10</em> at checkout</p>
           )}
         </div>
@@ -625,23 +622,41 @@ export default function MenuApp() {
             <label>Phone number<input name="phone" type="tel" inputMode="numeric" autoComplete="tel" required placeholder="10-digit mobile number" /></label>
             <label><span>Email <em className="opt">for your receipt · optional</em></span><input name="email" type="email" autoComplete="email" placeholder="you@example.com" /></label>
 
-            {!promoUsed && (
+            {true && (
               <div className="offers">
-                <h3>Offers <em className="opt">first order</em></h3>
+                <div className="offers-head"><h3>Offers for you</h3><span className="offers-tag">FIRST ORDER</span></div>
                 {pd ? (
-                  <div className="promo-on" role="status">
-                    <span><b>{pd.code}</b> applied · {pd.blurb} — you save <b>{rupee(pd.discount)}</b></span>
-                    <button type="button" onClick={removePromo}>Remove</button>
+                  <div className="coupon is-on promo-on" role="status">
+                    <div className="coupon-left"><span className="coupon-tick" aria-hidden="true">✓</span></div>
+                    <div className="coupon-body">
+                      <div className="coupon-info">
+                        <b>{pd.code} applied!</b>
+                        <small>You save <strong>{rupee(pd.discount)}</strong> on this order</small>
+                      </div>
+                      <button type="button" className="coupon-x" onClick={removePromo}>Remove</button>
+                    </div>
                   </div>
                 ) : (
                   <>
-                    <select className="promo-select" aria-label="Available offers" value="" onChange={(e) => { if (e.target.value) applyPromo(e.target.value); }} disabled={promoBusy}>
-                      <option value="">Choose an offer…</option>
-                      {Object.entries(PROMOS).map(([c, o]) => <option key={c} value={c}>{c} — {o.blurb}</option>)}
-                    </select>
-                    <div className="promo-row">
-                      <input value={promoInput} onChange={(e) => setPromoInput(e.target.value.toUpperCase())} placeholder="or type a code, e.g. MISAL10" autoComplete="off" aria-label="Offer code" />
-                      <button type="button" onClick={() => applyPromo(promoInput)} disabled={promoBusy}>{promoBusy ? 'Checking…' : 'Apply'}</button>
+                    {Object.entries(PROMOS).map(([c, o]) => (
+                      <button type="button" key={c} className="coupon" onClick={() => applyPromo(c)} disabled={promoBusy} aria-label={`Apply offer ${c}: ${o.blurb}`}>
+                        <div className="coupon-left"><strong>{o.percent}<sup>%</sup></strong><span>OFF</span></div>
+                        <div className="coupon-body">
+                          <div className="coupon-info">
+                            <b>{o.title}</b>
+                            <small>Use code <i>{c}</i></small>
+                            <em>On any order · once per phone number</em>
+                          </div>
+                          <span className="coupon-cta">{promoBusy ? 'Checking…' : 'APPLY'}</span>
+                        </div>
+                      </button>
+                    ))}
+                    <div className="code-box">
+                      <label htmlFor="promoCode">Have a code? Type it here</label>
+                      <div className="code-row promo-row">
+                        <input id="promoCode" value={promoInput} onChange={(e) => setPromoInput(e.target.value.toUpperCase())} onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); applyPromo(promoInput); } }} placeholder="Enter code" autoComplete="off" autoCapitalize="characters" spellCheck={false} aria-label="Offer code" />
+                        <button type="button" onClick={() => applyPromo(promoInput)} disabled={promoBusy}>{promoBusy ? '…' : 'Apply'}</button>
+                      </div>
                     </div>
                   </>
                 )}

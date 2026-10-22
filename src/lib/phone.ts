@@ -13,12 +13,9 @@ export function normalizePhone(raw: unknown): string | null {
 /** true for numbers that look made up: 9999999999, 9876543210, 9898989898, lots of one digit ... */
 export function looksFake(d: string): boolean {
   if (new Set(d).size <= 2) return true;                                   // 9999999999, 9898989898, 6666677777
-  if (/(\d)\1{5,}/.test(d)) return true;                                   // six or more of the same digit in a row
-  const up = '01234567890123456789', down = '98765432109876543210';
-  for (let i = 0; i + 6 <= d.length; i++) {                                 // 6+ in a row going up or down (123456, 987654)
-    const s = d.slice(i, i + 6);
-    if (up.includes(s) || down.includes(s)) return true;
-  }
+  if (/(\d)\1{6,}/.test(d)) return true;                                   // seven or more of the same digit in a row
+  if (d === '9876543210' || d === '8765432109' || d === '7654321098' || d === '6543210987') return true;   // a whole descending run
+  if (/(?:0123456789|123456789)$/.test(d) || /^[6-9]0123456789$/.test(d)) return true;                     // ...123456789
   return false;
 }
 

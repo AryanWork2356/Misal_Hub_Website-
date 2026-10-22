@@ -25,8 +25,10 @@
 
 var ORDERS = 'Orders';
 var FRANCHISE = 'Franchise Applications';
+var BULK = 'Bulk Orders';
 var ORDER_HEADERS = ['Created', 'Order ref', 'Status', 'Razorpay order id', 'Payment id', 'Paid at', 'Name', 'Phone', 'Email',
   'Type', 'Address', 'Map link', 'Distance (km)', 'Items', 'Subtotal', 'Delivery fee', 'Total', 'Notes', 'Promo', 'Discount', 'Source'];
+var BULK_HEADERS = ['Received', 'Name', 'Phone', 'Email', 'Occasion', 'Date needed', 'Time needed', 'People', 'Order details', 'Special / Jain', 'Plates & cutlery', 'Budget', 'Type', 'Address', 'Notes', 'Status'];
 var FRANCHISE_HEADERS = ['Received', 'Name', 'Phone', 'Email', 'City', 'Message'];
 
 function prop_(k) { return PropertiesService.getScriptProperties().getProperty(k) || ''; }
@@ -99,6 +101,7 @@ function doPost(e) {
     if (data.action === 'order_paid') return out_(orderPaid_(data));
     if (data.action === 'promo_check') return out_({ ok: true, used: promoUsed_(data.phone, data.code) });
     if (data.action === 'franchise') return out_(franchise_(data));
+    if (data.action === 'bulk') return out_(bulk_(data));
     return out_({ ok: false, error: 'unknown action' });
   } catch (err) {
     return out_({ ok: false, error: String(err) });
@@ -197,9 +200,32 @@ function franchise_(d) {
   return { ok: true };
 }
 
+/** Bulk / party order enquiry: new row (Status = New, change it as you follow up) + e-mail to the shop + confirmation to the customer. */
+function bulk_(d) {
+  var sh = sheet_(BULK, BULK_HEADERS);
+  sh.appendRow([new Date(), cell_(d.name), cell_(d.phone), cell_(d.email), cell_(d.occasion), cell_(d.date), cell_(d.time), cell_(d.people),
+    cell_(d.details), cell_(d.special), cell_(d.cutlery), cell_(d.budget), cell_(d.type), cell_(d.address), cell_(d.notes), 'New']);
+  var rows = [['Name', d.name], ['Phone', d.phone], ['Email', d.email], ['Occasion', d.occasion], ['Date', d.date], ['Time', d.time], ['People', d.people],
+    ['Order', d.details], ['Special / Jain', d.special], ['Plates & cutlery', d.cutlery], ['Budget', d.budget], ['Type', d.type], ['Address', d.address], ['Notes', d.notes]];
+  var table = rows.filter(function (r) { return r[1]; }).map(function (r) { return '<tr><td style="padding:4px 12px 4px 0;color:#666"><b>' + esc_(r[0]) + '</b></td><td style="padding:4px 0;white-space:pre-wrap">' + esc_(r[1]) + '</td></tr>'; }).join('');
+  MailApp.sendEmail({
+    to: shopEmail_(), name: 'Misal Hub website', replyTo: d.email || shopEmail_(),
+    subject: 'BULK ORDER request: ' + d.people + ' on ' + d.date + ' ' + d.time + ' (' + d.name + ')',
+    htmlBody: '<h2>New bulk / party order request</h2><p>Call the customer back with a quote.</p><table>' + table + '</table>'
+  });
+  if (d.email) {
+    MailApp.sendEmail({
+      to: d.email, name: 'Misal Hub', subject: 'We received your Misal Hub bulk order request',
+      htmlBody: '<p>Hi ' + esc_(d.name) + ', thank you! We have your request for <b>' + esc_(d.people) + '</b> on <b>' + esc_(d.date) + ' at ' + esc_(d.time) + '</b>.</p>' +
+        '<p>Our team will call you on ' + esc_(d.phone) + ' shortly to confirm the menu, the price and the timing.</p><p>Misal Hub &middot; +91 90041 67448</p>'
+    });
+  }
+  return { ok: true };
+}
+
 /** Run once from the editor: creates the sheets and sends a test e-mail to NOTIFY_EMAIL. */
 function selfTest() {
-  sheet_(ORDERS, ORDER_HEADERS); sheet_(FRANCHISE, FRANCHISE_HEADERS); settingsSheet_();
+  sheet_(ORDERS, ORDER_HEADERS); sheet_(FRANCHISE, FRANCHISE_HEADERS); sheet_(BULK, BULK_HEADERS); settingsSheet_();
   MailApp.sendEmail(shopEmail_(), 'Misal Hub website: test e-mail', 'If you can read this, order and franchise e-mails will reach you.');
-  Logger.log('OK - sheets (Orders, Franchise Applications, Settings) created and test e-mail sent to ' + shopEmail_());
+  Logger.log('OK - sheets (Orders, Franchise Applications, Bulk Orders, Settings) created and test e-mail sent to ' + shopEmail_());
 }

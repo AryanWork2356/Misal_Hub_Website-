@@ -11,10 +11,8 @@ import { PROMOS } from '@/lib/promo';
 export default function OfferCta({ code }: { code: keyof typeof PROMOS & string }) {
   const p = PROMOS[code];
   const [copied, setCopied] = useState(false);
-  const [used, setUsed] = useState(false);
   useEffect(() => {
     try {
-      if (localStorage.getItem('mh_promo_used') === '1') { setUsed(true); return; }
       localStorage.setItem('mh_promo', code);
       const src = new URLSearchParams(window.location.search).get('src');
       if (src) localStorage.setItem('mh_src', src.replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 20));
@@ -24,17 +22,6 @@ export default function OfferCta({ code }: { code: keyof typeof PROMOS & string 
   const copy = async () => {
     try { await navigator.clipboard.writeText(code); setCopied(true); setTimeout(() => setCopied(false), 2200); } catch { /* ignore */ }
   };
-
-  if (used) {
-    return (
-      <div className="of-used">
-        <span aria-hidden="true">🧡</span>
-        <b>Thank you for your first order!</b>
-        <p>You have already enjoyed this welcome offer. Order your favourites again any time.</p>
-        <Link href="/menu" className="btn btn-gold btn-lg">Order again →</Link>
-      </div>
-    );
-  }
 
   return (
     <div className="of-cta">

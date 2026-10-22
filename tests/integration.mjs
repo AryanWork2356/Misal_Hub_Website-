@@ -214,6 +214,24 @@ try {
   r = await post(3207, '/api/promo/check', { code: 'NOPE', phone: '9855566677' });
   ok('offer picker check: bad code -> 404', r.status === 404);
 
+  /* ----- bulk / party order enquiry ----- */
+  const future = new Date(Date.now() + 4 * 86400000).toISOString().slice(0, 10);
+  const bulkBody = { name: 'Asha Rao', phone: '98201 45678', email: 'asha@example.com', occasion: 'Birthday party', date: future, time: '18:30', people: '25 – 50 people',
+    details: '40 Misal Pav, 20 Vada Pav', special: '10 Jain plates', cutlery: 'Yes, please send plates & cutlery', budget: '8000', type: 'Delivery', address: 'Flat 4, Silver Cassia, Mira Road East, near Gayatri Dham', notes: '' };
+  sheetEvents.length = 0;
+  r = await post(3200, '/api/bulk', bulkBody);
+  const be = sheetEvents.find((e) => e.action === 'bulk');
+  ok('bulk: request saved to the Sheet with every detail (time, people, order, Jain, address)', r.json.ok && be && be.time === '18:30' && be.people === '25 – 50 people' && be.phone === '9820145678' && /Misal Pav/.test(be.details) && be.special === '10 Jain plates' && /Silver Cassia/.test(be.address));
+  r = await post(3200, '/api/bulk', { ...bulkBody, time: '' });
+  ok('bulk: missing time refused (400)', r.status === 400 && /time/i.test(r.json.error));
+  r = await post(3200, '/api/bulk', { ...bulkBody, date: '2020-01-01' });
+  ok('bulk: a past date refused (400)', r.status === 400);
+  sheetEvents.length = 0;
+  r = await post(3200, '/api/bulk', { ...bulkBody, website: 'http://spam.example' });
+  ok('bulk: spam-trap filled -> silently dropped', r.json.ok && sheetEvents.length === 0);
+  r = await post(3201, '/api/bulk', bulkBody);
+  ok('bulk: unconfigured server says unavailable (503) with the phone number', r.status === 503 && /90041 67448/.test(r.json.error));
+
   /* ----- manual pause switch ----- */
   let st = await (await fetch('http://127.0.0.1:3200/api/status')).json();
   ok('status: everything on by default', st.delivery === true && st.pickup === true);

@@ -6,6 +6,7 @@ import { verifyPaymentSignature, verifyWebhookSignature } from '@/lib/server/raz
 import { MENU } from '@/data/menu';
 import { normCode, promoDiscount } from '@/lib/promo';
 import { validMobile } from '@/lib/phone';
+import { earliestDate, validateBulk } from '@/lib/bulk';
 
 describe('delivery fee — the owner rules (₹50 up to 1 km, ₹80 beyond, nothing past 5 km)', () => {
   it('rules in code match what was agreed', () => {
@@ -185,6 +186,7 @@ describe('mobile number check — real-looking Indian numbers only', () => {
     expect(validMobile('+91 9930217654')).toBe('9930217654');
     expect(validMobile('09820145678')).toBe('9820145678');
     expect(validMobile('7021334455')).toBe('7021334455');
+    expect(validMobile('9876543212')).toBe('9876543212');   // ordinary test numbers are fine
   });
   it('rejects wrong lengths and numbers that cannot be mobiles', () => {
     expect(validMobile('982014567')).toBeNull();
@@ -198,7 +200,41 @@ describe('mobile number check — real-looking Indian numbers only', () => {
     expect(validMobile('9898989898')).toBeNull();
     expect(validMobile('9876543210')).toBeNull();
     expect(validMobile('9123456789')).toBeNull();
+    expect(validMobile('9000000000')).toBeNull();
     expect(validMobile('8888877777')).toBeNull();
     expect(validMobile('9000000000')).toBeNull();
+  });
+});
+
+describe('bulk / party order enquiry — everything the shop needs', () => {
+  const now = new Date('2026-11-02T08:00:00Z');   // 13:30 in India
+  const good = { name: 'Asha Rao', phone: '98201 45678', email: '', occasion: 'Birthday party', date: '2026-11-05', time: '18:30', people: '25 – 50 people',
+    details: '40 Misal Pav, 20 Vada Pav', special: '', cutlery: 'No, we have our own', budget: '', type: 'Delivery', address: 'Flat 4, Silver Cassia, Mira Road East, near Gayatri Dham', notes: '' };
+  it('accepts a complete request', () => {
+    const r = validateBulk(good, now);
+    expect(r.ok).toBe(true);
+    if (r.ok) expect(r.data).toMatchObject({ phone: '9820145678', time: '18:30', people: '25 – 50 people', type: 'Delivery' });
+  });
+  it('tomorrow (India time) is the earliest date', () => {
+    expect(earliestDate(now)).toBe('2026-11-03');
+    expect(validateBulk({ ...good, date: '2026-11-03' }, now).ok).toBe(true);
+    expect(validateBulk({ ...good, date: '2026-11-02' }, now).ok).toBe(false);   // today is too late
+    expect(validateBulk({ ...good, date: '2026-10-30' }, now).ok).toBe(false);
+    expect(validateBulk({ ...good, date: '2027-06-30' }, now).ok).toBe(false);   // too far ahead
+  });
+  it('needs a real phone, a time, people, order details and the plates question', () => {
+    expect(validateBulk({ ...good, phone: '9999999999' }, now).ok).toBe(false);
+    expect(validateBulk({ ...good, time: '' }, now).ok).toBe(false);
+    expect(validateBulk({ ...good, time: '25:00' }, now).ok).toBe(false);
+    expect(validateBulk({ ...good, people: '' }, now).ok).toBe(false);
+    expect(validateBulk({ ...good, details: 'x' }, now).ok).toBe(false);
+    expect(validateBulk({ ...good, occasion: '' }, now).ok).toBe(false);
+    expect(validateBulk({ ...good, cutlery: '' }, now).ok).toBe(false);
+  });
+  it('delivery needs an address; pickup does not (and drops it)', () => {
+    expect(validateBulk({ ...good, address: '' }, now).ok).toBe(false);
+    const p = validateBulk({ ...good, type: 'Pickup', address: '' }, now);
+    expect(p.ok).toBe(true);
+    if (p.ok) expect(p.data.address).toBe('');
   });
 });
