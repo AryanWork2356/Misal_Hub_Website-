@@ -182,35 +182,35 @@ try {
   r = await post(3204, '/api/checkout/create', { items: [{ id: 'misal-pav', mode: 'regular', qty: 1 }], customer, type: 'Pickup' });
   ok('test mode flag can NEVER bypass payment once real Razorpay keys exist', r.json.ok && !r.json.demo && r.json.razorpay?.orderId);
 
-  /* ----- promo code: 10% off, once per phone number ----- */
+  /* ----- promo code: only via the /offer page (signed token), 10% off, once per phone number ----- */
   const P1 = { ...customer, phone: '9811111111' }, P2 = { ...customer, phone: '9822222222' };
   const misal = [{ id: 'misal-pav', mode: 'regular', qty: 1 }];
+  const tk = (await post(3207, '/api/offer/claim', {})).json.token;
+  ok('offer page can obtain a signed token', typeof tk === 'string' && /^\d+\.[0-9a-f]{32}$/.test(tk));
+  let r2 = await post(3207, '/api/checkout/create', { items: misal, customer: P1, type: 'Pickup', promo: 'MISAL10' });
+  ok('typing the code WITHOUT having opened the offer page -> refused (400), no discount', r2.status === 400 && r2.json.code === 'promo_invalid');
+  r2 = await post(3207, '/api/checkout/create', { items: misal, customer: P1, type: 'Pickup', promo: 'MISAL10', offerToken: tk.slice(0, -4) + 'abcd' });
+  ok('a forged / edited token -> refused (400)', r2.status === 400 && r2.json.code === 'promo_invalid');
+  r2 = await post(3207, '/api/checkout/create', { items: misal, customer: P1, type: 'Pickup', promo: 'MISAL10', offerToken: `${Date.now() - 8 * 86400000}.${tk.split('.')[1]}` });
+  ok('an old / re-dated token -> refused', r2.status === 400);
   let before2 = rzpOrders.length;
-  r = await post(3207, '/api/checkout/create', { items: misal, customer: P1, type: 'Pickup', promo: 'misal10', src: 'card' });
+  r = await post(3207, '/api/checkout/create', { items: misal, customer: P1, type: 'Pickup', promo: 'misal10', offerToken: tk, src: 'card' });
   const pe = sheetEvents.filter((e) => e.action === 'order_created').at(-1);
-  ok('promo: first use -> ₹9 off ₹90 (total ₹81), Razorpay is asked for ₹81', r.json.ok && r.json.totals.discount === 9 && r.json.totals.total === 81 && rzpOrders.at(-1).amount === 8100, JSON.stringify(r.json.totals));
-  ok('promo: the Sheet row carries the code, discount and where it came from (card)', pe && pe.promo === 'MISAL10' && pe.discount === 9 && pe.source === 'card' && pe.total === 81);
+  ok('offer page visited: first use -> ₹9 off ₹90 (total ₹81), Razorpay is asked for ₹81', r.json.ok && r.json.totals.discount === 9 && r.json.totals.total === 81 && rzpOrders.at(-1).amount === 8100, JSON.stringify(r.json.totals));
+  ok('the Sheet row carries the code, discount and where it came from (card)', pe && pe.promo === 'MISAL10' && pe.discount === 9 && pe.source === 'card' && pe.total === 81);
   before2 = rzpOrders.length;
-  r = await post(3207, '/api/checkout/create', { items: misal, customer: P1, type: 'Pickup', promo: 'MISAL10' });
-  ok('promo: SAME phone again -> offer removed (409 promo_used, friendly message), no payment order created', r.status === 409 && r.json.code === 'promo_used' && rzpOrders.length === before2, r.json.error);
+  r = await post(3207, '/api/checkout/create', { items: misal, customer: P1, type: 'Pickup', promo: 'MISAL10', offerToken: tk });
+  ok('SAME phone again -> offer removed (409 promo_used, friendly message), no payment order created', r.status === 409 && r.json.code === 'promo_used' && rzpOrders.length === before2, r.json.error);
   r = await post(3207, '/api/checkout/create', { items: misal, customer: P1, type: 'Pickup' });
-  ok('promo: same phone can still order at the normal price (₹90)', r.json.ok && r.json.totals.total === 90 && r.json.totals.discount === 0);
-  r = await post(3207, '/api/checkout/create', { items: misal, customer: P2, type: 'Pickup', promo: 'MISAL10' });
-  ok('promo: a different phone gets the offer', r.json.ok && r.json.totals.discount === 9);
-  r = await post(3207, '/api/checkout/create', { items: [{ id: 'misal-thali', mode: 'regular', qty: 4 }], customer: { ...customer, phone: '9833333333' }, type: 'Pickup', promo: 'MISAL10' });
-  ok('promo: no cap, flat 10% on a big order (₹680 -> ₹68 off -> ₹612)', r.json.ok && r.json.totals.discount === 68 && r.json.totals.total === 612, JSON.stringify(r.json.totals));
-  r = await post(3207, '/api/checkout/create', { items: misal, customer: { ...customer, phone: '9844444444' }, type: 'Pickup', promo: 'FREE100' });
-  ok('promo: unknown code rejected (400)', r.status === 400 && !r.json.ok);
-  r = await post(3207, '/api/checkout/create', { items: misal, customer: P1, type: 'Pickup', promo: 'MISAL10', discount: 80, total: 1 });
-  ok('promo: browser cannot set its own discount/total (still refused for a used phone, ignored otherwise)', r.status === 409);
-  r = await post(3207, '/api/promo/check', { code: 'MISAL10', phone: '9855555555', subtotal: 200 });
-  ok('promo check: fresh phone -> ok', r.json.ok === true && r.json.code === 'MISAL10');
-  r = await post(3207, '/api/promo/check', { code: 'MISAL10', phone: '9811111111', subtotal: 200 });
-  ok('promo check: used phone -> 409 promo_used', r.status === 409 && r.json.code === 'promo_used');
-  r = await post(3207, '/api/promo/check', { code: 'MISAL10', subtotal: 200 });
-  ok('promo check: no phone -> asks for it (400)', r.status === 400);
-  r = await post(3207, '/api/promo/check', { code: 'NOPE', phone: '9855555555' });
-  ok('promo check: bad code -> 404', r.status === 404);
+  ok('same phone can still order at the normal price (₹90)', r.json.ok && r.json.totals.total === 90 && r.json.totals.discount === 0);
+  r = await post(3207, '/api/checkout/create', { items: misal, customer: P2, type: 'Pickup', promo: 'MISAL10', offerToken: tk });
+  ok('a different phone (that opened the offer page) gets the offer', r.json.ok && r.json.totals.discount === 9);
+  r = await post(3207, '/api/checkout/create', { items: [{ id: 'misal-thali', mode: 'regular', qty: 4 }], customer: { ...customer, phone: '9833333333' }, type: 'Pickup', promo: 'MISAL10', offerToken: tk });
+  ok('no cap, flat 10% on a big order (₹680 -> ₹68 off -> ₹612)', r.json.ok && r.json.totals.discount === 68 && r.json.totals.total === 612, JSON.stringify(r.json.totals));
+  r = await post(3207, '/api/checkout/create', { items: misal, customer: { ...customer, phone: '9844444444' }, type: 'Pickup', promo: 'FREE100', offerToken: tk });
+  ok('unknown code rejected (400)', r.status === 400 && !r.json.ok);
+  r = await fetch('http://127.0.0.1:3207/api/promo/check', { method: 'POST', body: '{}' });
+  ok('there is no public "check a code" endpoint any more', r.status === 404);
 
   /* ----- manual pause switch ----- */
   let st = await (await fetch('http://127.0.0.1:3200/api/status')).json();

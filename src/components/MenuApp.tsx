@@ -94,9 +94,6 @@ export default function MenuApp() {
   const [paid, setPaid] = useState<{ ref: string; total: number } | null>(null);
   const [activeCat, setActiveCat] = useState('');
   const [promo, setPromo] = useState('');            // applied offer code
-  const [promoInput, setPromoInput] = useState('');
-  const [promoMsg, setPromoMsg] = useState('');
-  const [promoBusy, setPromoBusy] = useState(false);
   const [promoUsed, setPromoUsed] = useState(false);   // this customer has already used the first-order offer
 
   const rootRef = useRef<HTMLElement>(null);
@@ -153,9 +150,9 @@ export default function MenuApp() {
   useEffect(() => {
     try {
       if (localStorage.getItem('mh_promo_used') === '1') { setPromoUsed(true); return; }   // already enjoyed it: never show the offer again
-      const fromUrl = normCode(new URLSearchParams(window.location.search).get('promo'));
-      const code = fromUrl || normCode(localStorage.getItem('mh_promo'));
-      if (code && PROMOS[code]) { setPromo(code); localStorage.setItem('mh_promo', code); }
+      /* only people who opened the /offer page hold both the code and the signed token */
+      const code = normCode(localStorage.getItem('mh_promo'));
+      if (code && PROMOS[code] && localStorage.getItem('mh_offer_token')) setPromo(code);
     } catch { /* ignore */ }
   }, []);
 
@@ -270,7 +267,7 @@ export default function MenuApp() {
 
   /* ---------- offer code ---------- */
   function removePromo() {
-    setPromo(''); setPromoMsg('');
+    setPromo('');
     try { localStorage.removeItem('mh_promo'); } catch { /* ignore */ }
   }
   /** the offer has been used (by this device or this phone number): drop it and never show it again */
@@ -278,27 +275,6 @@ export default function MenuApp() {
     removePromo(); setPromoUsed(true);
     try { localStorage.setItem('mh_promo_used', '1'); } catch { /* ignore */ }
   }
-  async function applyPromo() {
-    const code = normCode(promoInput);
-    setPromoMsg('');
-    if (!code) return setPromoMsg('Type your offer code first.');
-    setPromoBusy(true);
-    try {
-      const r = await fetch('/api/promo/check', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ code, phone: field('phone'), subtotal: sum }),
-      });
-      const j = await r.json();
-      if (!j.ok) { if (j.code === 'promo_used') retirePromo(); setPromoMsg(j.error || 'That offer could not be applied.'); return; }
-      setPromo(code); setPromoInput('');
-      try { localStorage.setItem('mh_promo', code); } catch { /* ignore */ }
-    } catch {
-      setPromoMsg('Could not check the offer. Please try again.');
-    } finally {
-      setPromoBusy(false);
-    }
-  }
-
   /* ---------- pay ---------- */
   async function pay() {
     setError('');
@@ -317,13 +293,13 @@ export default function MenuApp() {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           items: lines.map((l) => ({ id: l.it.id, mode: l.m, qty: l.qty })),
-          customer: { name, phone, email }, type, notes, promo: promo || undefined, src: (() => { try { return localStorage.getItem('mh_src') || undefined; } catch { return undefined; } })(),
+          customer: { name, phone, email }, type, notes, promo: promo || undefined, offerToken: promo ? (() => { try { return localStorage.getItem('mh_offer_token') || undefined; } catch { return undefined; } })() : undefined, src: (() => { try { return localStorage.getItem('mh_src') || undefined; } catch { return undefined; } })(),
           ...(type === 'Delivery' && quote ? { address, lat: quote.lat, lng: quote.lng } : {}),
         }),
       });
       const j = await res.json();
       if (!j.ok) {
-        if (j.code === 'promo_used') retirePromo();   // the offer was already used with this number: drop it, the customer can still order
+        if (j.code === 'promo_used') retirePromo(); else if (j.code === 'promo_invalid') removePromo();   // the offer was already used with this number: drop it, the customer can still order
         setError(j.error || 'Could not start payment.'); setPaying(false); return;
       }
       try { localStorage.setItem(CUSTOMER_KEY, JSON.stringify({ name, phone, email, address })); } catch { /* ignore */ }
@@ -598,19 +574,12 @@ export default function MenuApp() {
             <label>Phone number<input name="phone" type="tel" inputMode="numeric" autoComplete="tel" required placeholder="10-digit mobile number" /></label>
             <label><span>Email <em className="opt">for your receipt · optional</em></span><input name="email" type="email" autoComplete="email" placeholder="you@example.com" /></label>
 
-            {!promoUsed && <h3>Offer code <em className="opt">optional</em></h3>}
-            {promoUsed ? null : pd ? (
+            {pd && !promoUsed && (
               <div className="promo-on" role="status">
                 <span><b>{pd.code}</b> applied · {pd.blurb} — you save <b>{rupee(pd.discount)}</b></span>
                 <button type="button" onClick={removePromo}>Remove</button>
               </div>
-            ) : (
-              <div className="promo-row">
-                <input value={promoInput} onChange={(e) => setPromoInput(e.target.value.toUpperCase())} placeholder="Have a code? e.g. MISAL10" autoComplete="off" aria-label="Offer code" />
-                <button type="button" onClick={applyPromo} disabled={promoBusy}>{promoBusy ? 'Checking…' : 'Apply'}</button>
-              </div>
             )}
-            {promoMsg && <p className="promo-msg" role="alert">{promoMsg}</p>}
 
             <h3>How would you like it?</h3>
             <div className="otype" role="radiogroup" aria-label="Order type">

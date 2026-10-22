@@ -114,7 +114,7 @@ export default function OfferPage() {
               const it = byId[id];
               if (!it) return null;
               return (
-                <Link key={id} href={`/menu?promo=MISAL10#item-${id}`} className="of-pick reveal">
+                <Link key={id} href={`/menu#item-${id}`} className="of-pick reveal">
                   <div className="of-pick-img"><img src={`/images/menu/${it.img || it.id}.jpg`} alt={it.name} loading="lazy" /></div>
                   <div className="of-pick-body">
                     <h3>{it.name}</h3>
