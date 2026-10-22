@@ -42,6 +42,8 @@ export async function POST(req: Request) {
 
   const priced = priceCart(b.items);
   if (!priced.ok) return json({ ok: false, error: priced.error }, 400);
+  const gone = priced.lines.filter((l) => l.id in status.soldOut);
+  if (gone.length) return json({ ok: false, code: 'soldout', ids: gone.map((l) => l.id), error: `Sorry, ${gone.map((l) => l.name).join(', ')} ${gone.length > 1 ? 'are' : 'is'} out of stock right now. Please remove ${gone.length > 1 ? 'them' : 'it'} from your order.` }, 409);
 
   const name = cleanText(b.customer?.name, 80);
   const phone = cleanPhone(b.customer?.phone);

@@ -75,7 +75,7 @@ const scriptPaused = await mk(async (req, res) => {   // a Sheet whose Settings 
     return res.end('{"ok":true}');
   }
   res.writeHead(200, { 'Content-Type': 'application/json' });
-  res.end(JSON.stringify(req.url.includes(`secret=${SCRIPT_SECRET}`) ? { ok: true, delivery: 'YES', pickup: 'NO', message: 'Closed today' } : { ok: false, error: 'unauthorized' }));
+  res.end(JSON.stringify(req.url.includes(`secret=${SCRIPT_SECRET}`) ? { ok: true, delivery: 'YES', pickup: 'NO', message: 'Closed today', soldOut: [{ id: 'chaas', note: 'Back at 4 PM' }, { id: 'misal-thali', note: '' }] } : { ok: false, error: 'unauthorized' }));
 }, 4012);
 
 /* ---------- real server ---------- */
@@ -370,6 +370,16 @@ try {
   ok('Sheet Settings (Pickup = NO, message) is read by the website', st.pickup === false && st.delivery === true && st.message === 'Closed today', JSON.stringify(st));
   r = await post(3206, '/api/checkout/create', { items: [{ id: 'misal-pav', mode: 'regular', qty: 1 }], customer, type: 'Pickup' });
   ok('pickup paused in the Sheet -> pickup order refused with the owner message', r.status === 409 && r.json.code === 'paused' && /Closed today/.test(r.json.error));
+
+  /* ----- out of stock (Menu tab in the Sheet) ----- */
+  r = await get(3206, '/api/status');
+  ok('status carries the out-of-stock dishes with their notes', r.json.soldOut?.chaas === 'Back at 4 PM' && r.json.soldOut['misal-thali'] === '' && Object.keys(r.json.soldOut).length === 2, JSON.stringify(r.json.soldOut));
+  r = await get(3200, '/api/status');
+  ok('nothing out of stock by default', r.json.soldOut && Object.keys(r.json.soldOut).length === 0);
+  r = await post(3206, '/api/checkout/create', { items: [{ id: 'chaas', mode: 'regular', qty: 1 }, { id: 'misal-pav', mode: 'regular', qty: 1 }], customer, type: 'Delivery' });
+  ok('ordering an out-of-stock dish is refused by the server (409 soldout), naming it', r.status === 409 && r.json.code === 'soldout' && /Chaas/.test(r.json.error) && /out of stock/i.test(r.json.error) && r.json.ids?.[0] === 'chaas', r.json.error);
+  r = await post(3206, '/api/checkout/create', { items: [{ id: 'misal-pav', mode: 'regular', qty: 1 }], customer, type: 'Delivery' });
+  ok('in-stock dishes are not affected by the check (fails later, on the address, not on stock)', r.json.code !== 'soldout');
 
   /* ----- rate limiting ----- */
   let limited = 0;

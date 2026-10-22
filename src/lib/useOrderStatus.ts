@@ -1,8 +1,8 @@
 'use client';
 import { useEffect, useState } from 'react';
 
-export type OrderStatus = { delivery: boolean; pickup: boolean; message: string };
-const OPEN: OrderStatus = { delivery: true, pickup: true, message: '' };
+export type OrderStatus = { delivery: boolean; pickup: boolean; message: string; soldOut: Record<string, string> };
+const OPEN: OrderStatus = { delivery: true, pickup: true, message: '', soldOut: {} };
 
 /** Owner's manual delivery / pickup switch. Starts "on", refreshed every minute and when the tab is shown again. */
 export function useOrderStatus(): OrderStatus {
@@ -14,7 +14,7 @@ export function useOrderStatus(): OrderStatus {
         const r = await fetch('/api/status', { cache: 'no-store' });
         if (!r.ok) return;
         const j = await r.json();
-        if (alive) setS({ delivery: j.delivery !== false, pickup: j.pickup !== false, message: String(j.message || '') });
+        if (alive) setS({ delivery: j.delivery !== false, pickup: j.pickup !== false, message: String(j.message || ''), soldOut: j.soldOut && typeof j.soldOut === 'object' ? j.soldOut : {} });
       } catch { /* keep last value */ }
     };
     load();

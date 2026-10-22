@@ -2057,6 +2057,19 @@ html.lenis, html.lenis body { height: auto; }
 .pg-menu .shop-photo figcaption { position: absolute; left: 0; right: 0; bottom: 0; padding: 40px 20px 14px; background: linear-gradient(180deg, transparent, rgba(18,8,2,.88)); font: 600 .84rem 'Poppins', sans-serif; color: #FFE0B8 !important; }
 @media (max-width: 768px) { .pg-menu .shop-photo { border-radius: 16px; margin-bottom: 24px; } .pg-menu .shop-photo figcaption { font-size: .72rem; padding: 28px 12px 10px; } }
 
+/* =====================================================================
+   OUT OF STOCK (set in the Sheet's Menu tab)
+   ===================================================================== */
+.pg-menu .item.is-out { position: relative; }
+.pg-menu .item.is-out .item-body, .pg-menu .item.is-out .dish-img, .pg-menu .item.is-out img { filter: grayscale(.85); opacity: .55; }
+.pg-menu .item.is-out .item-body h3 { text-decoration: line-through; text-decoration-color: rgba(255,138,31,.6); }
+.pg-menu .out-ribbon { position: absolute; z-index: 3; left: -34px; top: 22px; width: 150px; padding: 5px 0; text-align: center; transform: rotate(-38deg); background: #dc2626; color: #fff !important; font: 800 .62rem 'Poppins', sans-serif; letter-spacing: 1.2px; text-transform: uppercase; box-shadow: 0 6px 14px rgba(0,0,0,.45); pointer-events: none; }
+.pg-menu .item.is-out { overflow: hidden; }
+.pg-menu .out-tag { display: inline-block; max-width: 150px; padding: 8px 14px; border-radius: 50px; border: 1.5px solid rgba(239,68,68,.7); background: rgba(239,68,68,.12); color: #fca5a5 !important; font: 700 .72rem 'Poppins', sans-serif; text-align: center; line-height: 1.3; }
+.pg-menu .cl.is-out { opacity: .8; }
+.pg-menu .cl.is-out .cl-thumb { filter: grayscale(.9); }
+.pg-menu .out-inline { display: inline-block; padding: 2px 10px; border-radius: 50px; background: rgba(239,68,68,.18); color: #fca5a5 !important; font-weight: 800; }
+
 /* ============================================================
    MISAL HUB — MENU & ORDER PAGE
    Brown surfaces, orange text.

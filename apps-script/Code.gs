@@ -16,6 +16,10 @@
  *   from that moment. Use the Progress dropdown (Preparing / Out for delivery / Ready for pickup / Delivered / Cancelled) and, if you like,
  *   "Message to customer" (e.g. "Heavy rain, a few minutes late").
  *
+ * OUT OF STOCK: the "Menu" tab lists every dish. Change "Available" to NO (dropdown) and the website shows the dish as "Out of stock" within about a minute
+ *   and will not take orders for it; optional "Note to customers" (e.g. "Back at 4 PM") is shown next to it. Set it back to YES when it is available again.
+ *   Do not edit columns A-D. After the menu changes on the website, a new dish row is added automatically the next time selfTest runs.
+ *
  * MANUAL SWITCH (pause delivery / pickup for a day): the "Settings" tab of this Sheet.
  *   Delivery = YES / NO, Pickup = YES / NO, Message = text shown to customers. The website reads it about once a minute.
  *   (The tab is created by selfTest; after pasting a new version of this script: Deploy -> Manage deployments -> pencil -> Version: New version -> Deploy.)
@@ -32,6 +36,86 @@ var ORDERS = 'Orders';
 var FRANCHISE = 'Franchise Applications';
 var BULK = 'Bulk Orders';
 var CUSTOMERS = 'Customers';
+var MENU_TAB = 'Menu';
+var MENU_HEADERS = ['Item ID', 'Category', 'Item', 'Price (Rs)', 'Available', 'Note to customers'];
+
+// <MENU-LIST> (generated from src/data/menu.ts by scripts/gen-menu-gs.mjs — do not edit by hand)
+var MENU_ITEMS = [
+  ['misal-pav', 'Misal Pav', 'Misal Pav', 90],
+  ['only-misal', 'Misal Pav', 'Only Misal', 85],
+  ['dahi-misal-pav', 'Misal Pav', 'Dahi Misal Pav', 110],
+  ['vada-misal-pav', 'Misal Pav', 'Vada Misal Pav', 110],
+  ['only-vada-misal', 'Misal Pav', 'Only Vada Misal', 105],
+  ['cheese-misal-pav', 'Misal Pav', 'Cheese Misal Pav', 130],
+  ['fry-misal-pav', 'Misal Pav', 'Fry Misal Pav', 120],
+  ['only-fry-misal', 'Misal Pav', 'Only Fry Misal', 110],
+  ['cheese-fry-misal', 'Misal Pav', 'Cheese Fry Misal Pav', 160],
+  ['nikahara-misal-pav', 'Misal Pav', 'Nikahara Misal Pav', 125],
+  ['sizzling-fry-misal', 'Misal Pav', 'Sizzling Fry Misal Pav', 240],
+  ['usal-pav', 'Usal Pav', 'Usal Pav', 85],
+  ['only-usal', 'Usal Pav', 'Only Usal', 80],
+  ['vada-usal-pav', 'Usal Pav', 'Vada Usal Pav', 100],
+  ['chulha-misal', 'Chulha Misal', 'Chulha Misal (Group of 4)', 850],
+  ['misal-thali', 'Thali', 'Misal Thali', 170],
+  ['nikhara-misal-thali', 'Thali', 'Nikhara Misal Thali', 200],
+  ['fry-misal-thali', 'Thali', 'Fry Misal Thali', 220],
+  ['misal-pav-combo', 'Combos', 'Misal Pav Combo', 135],
+  ['misal-fry-combo', 'Combos', 'Misal Pav & Fry Misal Pav Combo', 255],
+  ['vada-usal-combo', 'Combos', 'Vada Usal Pav Combo', 365],
+  ['nikahara-combo', 'Combos', 'Nikahara Misal Pav Combo', 290],
+  ['masala-papad', 'Snacks', 'Masala Papad', 70],
+  ['samosa-pav', 'Snacks', 'Samosa Pav', 25],
+  ['samosa-2', 'Snacks', 'Samosa (2 Pc)', 40],
+  ['kanda-bhajiya', 'Snacks', 'Kanda Bhajiya', 100],
+  ['batata-bhajiya', 'Snacks', 'Batata Bhajiya', 100],
+  ['mix-bhajiya', 'Snacks', 'Mix Bhajiya', 140],
+  ['moongdal-bhajiya', 'Snacks', 'Moongdal Bhajiya', 120],
+  ['bread-cutlet', 'Snacks', 'Bread Cutlet', 30],
+  ['sabudana-vada', 'Snacks', 'Sabudana Vada', 70],
+  ['sabudana-khichdi', 'Snacks', 'Sabudana Khichdi', 80],
+  ['kande-pohe', 'Snacks', 'Kande Pohe', 70],
+  ['upma', 'Snacks', 'Upma', 70],
+  ['aloo-paratha', 'Snacks', 'Aloo Paratha with Curd (2 Pc)', 150],
+  ['moong-dal-bhaji', 'Snacks', 'Moong Dal Bhaji', 90],
+  ['paneer-bhurji', 'Snacks', 'Paneer Bhurji (2 Pav)', 170],
+  ['vada-pav', 'Vada Pav', 'Vada Pav', 25],
+  ['cheese-grill-vp', 'Vada Pav', 'Cheese Grill Vada Pav', 65],
+  ['mayo-vada-pav', 'Vada Pav', 'Mayonnaise Vada Pav', 35],
+  ['tandoori-vada-pav', 'Vada Pav', 'Tandoori Vada Pav', 40],
+  ['loaded-cheese-vp', 'Vada Pav', 'Loaded Cheese Grill Vada Pav', 75],
+  ['batata-vada-2', 'Vada Pav', 'Batata Vada (2 Pc)', 40],
+  ['chole-puri', 'Chole Puri / Puri Bhaji', 'Chole Puri', 110],
+  ['puri-5', 'Chole Puri / Puri Bhaji', 'Puri (5 Pcs)', 45],
+  ['puri-bhaji', 'Chole Puri / Puri Bhaji', 'Puri Bhaji', 90],
+  ['aamras-puri', 'Chole Puri / Puri Bhaji', 'Aamras Puri', ''],
+  ['sada-sandwich', 'Sandwich', 'Sada Sandwich', 80],
+  ['veg-grill', 'Sandwich', 'Veg Grill Sandwich', 120],
+  ['veg-cheese-grill', 'Sandwich', 'Veg Cheese Grill Sandwich', 160],
+  ['masala-grill', 'Sandwich', 'Masala Grill Sandwich', 145],
+  ['masala-cheese-grill', 'Sandwich', 'Masala Cheese Grill Sandwich', 180],
+  ['loaded-sandwich', 'Sandwich', 'Loaded Sandwich', 199],
+  ['cheese-chilly-grill', 'Sandwich', 'Cheese Chilly Grill Sandwich', 170],
+  ['tandoori-mayo-grill', 'Sandwich', 'Tandoori Mayo Cheese Grill Sandwich', 190],
+  ['kulhad-tea', 'Beverages', 'Kulhad Tea', 25],
+  ['kulhad-coffee', 'Beverages', 'Kulhad Nescafe Coffee', 45],
+  ['chaas', 'Beverages', 'Chaas', 30],
+  ['water', 'Beverages', 'Mineral Water 1 Ltr', 20],
+  ['cold-drink', 'Beverages', 'Cold Drink', 20],
+  ['kokam-soda', 'Beverages', 'Kokam Soda', 80],
+  ['kokam-sarbat', 'Beverages', 'Kokam Sarbat', 60],
+  ['solkadhi', 'Beverages', 'Solkadhi', 60],
+  ['aamras-vati', 'Beverages', 'Aamras Vati', ''],
+  ['aamras-500', 'Beverages', 'Aamras (500 gm)', ''],
+  ['x-pav', 'Extras', 'Pav', 5],
+  ['x-butter-pav', 'Extras', 'Butter Pav', 20],
+  ['x-farsan', 'Extras', 'Farsan', 15],
+  ['x-papad', 'Extras', 'Papad', 10],
+  ['x-cheese', 'Extras', 'Cheese', 35],
+  ['x-dahi', 'Extras', 'Dahi', 25],
+  ['x-gulab-jamun', 'Extras', 'Gulab Jamun', 20],
+  ['x-rassa-vati', 'Extras', 'Rassa Vati', 25]
+];
+// </MENU-LIST>
 var ORDER_HEADERS = ['Created', 'Order ref', 'Status', 'Razorpay order id', 'Payment id', 'Paid at', 'Name', 'Phone', 'Email',
   'Type', 'Address', 'Map link', 'Distance (km)', 'Items', 'Subtotal', 'Delivery fee', 'Total', 'Notes', 'Promo', 'Discount', 'Source', 'Progress', 'ETA (min)', 'ETA set at', 'Message to customer', 'Finished at'];
 var BULK_HEADERS = ['Received', 'Name', 'Phone', 'Email', 'Occasion', 'Date needed', 'Time needed', 'People', 'Order details', 'Special / Jain', 'Plates & cutlery', 'Budget', 'Type', 'Address', 'Notes', 'Status'];
@@ -73,6 +157,44 @@ function sheet_(name, headers) {
 }
 
 var SETTINGS = 'Settings';
+
+/** The "Menu" tab: one row per dish with an Available YES/NO dropdown. Missing dishes are added; the owner's choices are never overwritten. */
+function menuSheet_() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sh = ss.getSheetByName(MENU_TAB);
+  var fresh = false;
+  if (!sh) {
+    sh = ss.insertSheet(MENU_TAB);
+    sh.getRange(1, 1, 1, MENU_HEADERS.length).setValues([MENU_HEADERS]).setFontWeight('bold').setBackground('#FFE0B8');
+    sh.setFrozenRows(1);
+    sh.setColumnWidth(1, 150); sh.setColumnWidth(2, 150); sh.setColumnWidth(3, 260); sh.setColumnWidth(4, 90); sh.setColumnWidth(5, 110); sh.setColumnWidth(6, 330);
+    fresh = true;
+  }
+  var have = {};
+  var last = sh.getLastRow();
+  if (last > 1) { var ids = sh.getRange(2, 1, last - 1, 1).getValues(); for (var i = 0; i < ids.length; i++) have[String(ids[i][0])] = true; }
+  var add = [];
+  for (var k = 0; k < MENU_ITEMS.length; k++) { var it = MENU_ITEMS[k]; if (!have[it[0]]) add.push([it[0], it[1], it[2], it[3], 'YES', '']); }
+  if (add.length) sh.getRange(sh.getLastRow() + 1, 1, add.length, 6).setValues(add);
+  var rows = Math.max(sh.getLastRow() - 1, 1);
+  sh.getRange(2, 5, rows, 1).setDataValidation(SpreadsheetApp.newDataValidation().requireValueInList(['YES', 'NO'], true).setAllowInvalid(false).build()).setHorizontalAlignment('center').setFontWeight('bold');
+  sh.getRange(2, 1, rows, 4).setFontColor('#777777');
+  if (fresh) {
+    var rule = SpreadsheetApp.newConditionalFormatRule().whenTextEqualTo('NO').setBackground('#F4C7C3').setFontColor('#B71C1C').setRanges([sh.getRange(2, 5, 500, 1)]).build();
+    sh.setConditionalFormatRules([rule]);
+  }
+  return sh;
+}
+
+/** Dishes currently marked NO in the Menu tab: [{id, note}] (read by the website). */
+function soldOutList_() {
+  var sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(MENU_TAB);
+  if (!sh || sh.getLastRow() < 2) return [];
+  var v = sh.getRange(2, 1, sh.getLastRow() - 1, 6).getValues();
+  var out = [];
+  for (var i = 0; i < v.length; i++) if (String(v[i][4]).toUpperCase().trim() === 'NO' && v[i][0]) out.push({ id: String(v[i][0]), note: String(v[i][5] || '') });
+  return out;
+}
 
 /** Runs automatically when someone edits the Sheet: typing a number in "ETA (min)" restarts that order's countdown from now. */
 function onEdit(e) {
@@ -242,7 +364,7 @@ function doGet(e) {
     if (q.action !== 'status') return out_({ ok: false, error: 'unknown action' });
     var v = settingsSheet_().getRange('B2:B4').getValues();
     var yn = function (x) { return String(x).toUpperCase().trim() === 'NO' ? 'NO' : 'YES'; };
-    return out_({ ok: true, delivery: yn(v[0][0]), pickup: yn(v[1][0]), message: String(v[2][0] || '') });
+    return out_({ ok: true, delivery: yn(v[0][0]), pickup: yn(v[1][0]), message: String(v[2][0] || ''), soldOut: soldOutList_() });
   } catch (err) {
     return out_({ ok: false, error: String(err) });
   }
@@ -399,7 +521,7 @@ function bulk_(d) {
 
 /** Run once from the editor: creates the sheets and sends a test e-mail to NOTIFY_EMAIL. */
 function selfTest() {
-  formatOrders_(sheet_(ORDERS, ORDER_HEADERS)); sheet_(FRANCHISE, FRANCHISE_HEADERS); sheet_(BULK, BULK_HEADERS); sheet_(CUSTOMERS, CUSTOMER_HEADERS); settingsSheet_();
+  formatOrders_(sheet_(ORDERS, ORDER_HEADERS)); sheet_(FRANCHISE, FRANCHISE_HEADERS); sheet_(BULK, BULK_HEADERS); sheet_(CUSTOMERS, CUSTOMER_HEADERS); menuSheet_(); settingsSheet_();
   MailApp.sendEmail(shopEmail_(), 'Misal Hub website: test e-mail', 'If you can read this, order and franchise e-mails will reach you.');
-  Logger.log('OK - sheets (Orders, Franchise Applications, Bulk Orders, Customers, Settings) created and test e-mail sent to ' + shopEmail_());
+  Logger.log('OK - sheets (Orders, Franchise Applications, Bulk Orders, Customers, Menu, Settings) created and test e-mail sent to ' + shopEmail_());
 }

@@ -152,12 +152,13 @@ export default function MenuApp() {
   const discount = pd?.discount ?? 0;
   const total = sum - discount + fee;
   const typeOn = type === 'Delivery' ? ost.delivery : ost.pickup;
-  const canPay = ready && open && typeOn && count > 0 && !paying && (type === 'Pickup' || (!!dq && dq.deliverable));
+  const soldLines = lines.filter((l) => l.it.id in ost.soldOut);
+  const canPay = ready && open && typeOn && soldLines.length === 0 && count > 0 && !paying && (type === 'Pickup' || (!!dq && dq.deliverable));
 
   /* what is closed right now (shop hours, or the owner's manual switch) — shown BEFORE the customer fills anything in */
   const allPaused = !ost.delivery && !ost.pickup;
-  const blocked = !open || allPaused;
-  const closedLabel = !open ? 'Closed now' : allPaused ? 'Ordering closed' : !typeOn ? (type === 'Delivery' ? 'Delivery closed' : 'Pickup closed') : '';
+  const blocked = !open || allPaused || soldLines.length > 0;
+  const closedLabel = soldLines.length ? 'Remove sold-out items' : !open ? 'Closed now' : allPaused ? 'Ordering closed' : !typeOn ? (type === 'Delivery' ? 'Delivery closed' : 'Pickup closed') : '';
   const msg = ost.message ? ` ${ost.message}` : '';
   const notice = !open ? (
     <div className="closed-banner" role="status"><b>We are closed right now</b><span>Online orders are open every day from 8 AM to 8 PM. Your cart is saved, so you can order when we open.</span></div>
@@ -365,6 +366,7 @@ export default function MenuApp() {
       });
       const j = await res.json();
       if (!j.ok) {
+        if (j.code === 'soldout') setStep('cart');
         if (j.code === 'signin') refreshAccount();
         if (j.code === 'promo_used') retirePromo();    // the offer was already used with this number: drop it, the customer can still order
         setError(j.error || 'Could not start payment.'); setPaying(false); return;
@@ -487,8 +489,10 @@ export default function MenuApp() {
                 const note = mode === 'jain' && it.jn ? it.jn : it.note || '';
                 const key = keyOf(it, mode);
                 const qty = cart[key] || 0;
+                const out = it.id in ost.soldOut;
                 return (
-                  <article className="item spot" id={`item-${it.id}`} key={it.id}>
+                  <article className={`item spot${out ? ' is-out' : ''}`} id={`item-${it.id}`} key={it.id}>
+                    {out && <span className="out-ribbon">Out of stock</span>}
                     <DishImg item={it} />
                     <div className="item-body">
                       <h3>{it.name}</h3>
@@ -503,7 +507,9 @@ export default function MenuApp() {
                           <>
                             <span className="price">{rupee(p)}</span>
                             <span className="ctrl">
-                              {qty ? (
+                              {out ? (
+                                <span className="out-tag" title={ost.soldOut[it.id] || undefined}>{ost.soldOut[it.id] || 'Currently unavailable'}</span>
+                              ) : qty ? (
                                 <Stepper qty={qty} onDec={() => change(key, -1)} onInc={() => change(key, 1)} />
                               ) : (
                                 <button type="button" className="add" onClick={() => change(key, 1)} aria-label={`Add ${it.name} to order`}>Add</button>
@@ -610,13 +616,16 @@ export default function MenuApp() {
                 </div>
 
                 {notice}
+                {soldLines.length > 0 && (
+                  <div className="closed-banner" role="alert"><b>Some items are out of stock</b><span>{soldLines.map((l) => l.it.name).join(', ')} {soldLines.length > 1 ? 'are' : 'is'} not available right now. Please remove {soldLines.length > 1 ? 'them' : 'it'} to continue.</span></div>
+                )}
                 <div className="cart-lines">
                   {lines.map((l, i) => (
-                    <div className="cl" key={l.key} style={{ '--i': i } as React.CSSProperties}>
+                    <div className={`cl${l.it.id in ost.soldOut ? ' is-out' : ''}`} key={l.key} style={{ '--i': i } as React.CSSProperties}>
                       <Thumb item={l.it} />
                       <div className="cl-main">
                         <b>{l.it.name}</b>
-                        <small>{l.m === 'jain' ? 'Jain · ' : ''}{rupee(l.price)} each</small>
+                        <small>{l.it.id in ost.soldOut ? <span className="out-inline">Out of stock</span> : <>{l.m === 'jain' ? 'Jain · ' : ''}{rupee(l.price)} each</>}</small>
                         <Stepper qty={l.qty} onDec={() => change(l.key, -1)} onInc={() => change(l.key, 1)} />
                       </div>
                       <span className="cl-total">{rupee(l.qty * l.price)}</span>
@@ -628,7 +637,7 @@ export default function MenuApp() {
                   <div className="addons">
                     <small>Complete your meal</small>
                     <div className="addon-row">
-                      {addons.map((it) => (
+                      {addons.filter((it) => !(it.id in ost.soldOut)).map((it) => (
                         <button type="button" key={it.id} className="addon-chip" onClick={() => change(keyOf(it, 'regular'), 1)} aria-label={`Add ${it.name}`}>
                           <Thumb item={it} />
                           <span><b>{it.name}</b><small>{rupee(it.p ?? 0)}</small></span>
