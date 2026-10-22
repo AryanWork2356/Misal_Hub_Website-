@@ -1080,3 +1080,17 @@ body.order-page .ot-pill { bottom: 96px; }
 .acct-pop .acct-link { display: flex; align-items: baseline; gap: 8px; width: 100%; padding: 11px 12px; border-radius: 10px; text-decoration: none; font: 600 .86rem 'Poppins', sans-serif; color: #FFE0B8 !important; }
 .acct-pop .acct-link:hover { background: rgba(255,138,31,.15); }
 .acct-pop .acct-link small { font-size: .68rem; font-weight: 500; opacity: .65; color: #FFB067 !important; }
+
+/* empty "My current order": a hungry nudge to the menu */
+.ot-panel.ot-empty { max-height: none; }
+.ot-hungry { text-align: center; justify-items: center; padding: 26px 24px 34px; gap: 10px; }
+.ot-pot { position: relative; width: 96px; height: 96px; display: grid; place-items: center; margin-bottom: 4px; }
+.ot-pot > span { font-size: 3.6rem; line-height: 1; filter: drop-shadow(0 10px 10px rgba(0,0,0,.5)); animation: otPot 1.8s ease-in-out infinite; transform-origin: 50% 80%; }
+.ot-pot .steam { width: 9px; height: 24px; top: 2px; animation: otSteam 2.2s ease-in infinite; }
+.ot-pot .steam.s1 { left: 32px; } .ot-pot .steam.s2 { left: 44px; animation-delay: .7s; } .ot-pot .steam.s3 { left: 56px; animation-delay: 1.4s; }
+.ot-hungry h3 { margin: 0; font: 800 1.6rem 'Playfair Display', serif; color: #FF8A1F; }
+.ot-hungry p { margin: 0; max-width: 340px; font-size: .95rem; line-height: 1.7; opacity: .92; }
+.ot-quote { font-style: italic; color: #FFB067; opacity: 1 !important; }
+.ot-hungry .btn { margin-top: 10px; }
+@media (prefers-reduced-motion: reduce) { .ot-pot > span, .ot-pot .steam { animation: none !important; } }
+.ot-hungry .btn { background: linear-gradient(135deg, #FFB067, #FF8A1F) !important; color: #2A1206 !important; border: 0 !important; font-weight: 800; padding: 14px 34px; box-shadow: 0 12px 28px rgba(255,138,31,.45); animation: dlvGlow 2.8s ease-in-out infinite; }

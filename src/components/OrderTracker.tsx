@@ -1,4 +1,5 @@
 'use client';
+import Link from 'next/link';
 import { useCallback, useEffect, useState } from 'react';
 import { isFinished, minutesLeft, stepIndex, type OrderView } from '@/lib/eta';
 import { SHOP } from '@/lib/pricing';
@@ -62,7 +63,29 @@ export default function OrderTracker() {
   }, [open]);
 
   const order = orders.find((o) => o.ref === sel) ?? orders[0];
-  if (!signedIn || !order) return null;
+  if (!signedIn) return null;
+
+  /* nothing on the way: no floating pill, but "My current order" (profile menu) still opens a friendly panel that leads to the menu */
+  if (!order) {
+    return (
+      <div className={`ot-sheet${open ? ' open' : ''}`} aria-hidden={!open} role="dialog" aria-label="My current order">
+        <div className="ot-backdrop" onClick={() => setOpen(false)} />
+        <div className="ot-panel ot-empty">
+          <div className="ot-head">
+            <div><small>MY CURRENT ORDER</small><b>Nothing on the way</b></div>
+            <button type="button" className="ot-x" onClick={() => setOpen(false)} aria-label="Close">×</button>
+          </div>
+          <div className="ot-body ot-hungry">
+            <div className="ot-pot" aria-hidden="true"><span>🍲</span><i className="steam s1" /><i className="steam s2" /><i className="steam s3" /></div>
+            <h3>Feeling hungry? 😋</h3>
+            <p>Your tummy is talking, and a plate of piping-hot, spicy misal is listening.</p>
+            <p className="ot-quote">“Good food, good mood. Misal never disappoints.”</p>
+            <Link href="/menu" className="btn btn-gold btn-lg" onClick={() => setOpen(false)}>Order now →</Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   /* one short status line per order (pill + tabs) */
   const short = (o: OrderView) => {

@@ -33,7 +33,7 @@ var FRANCHISE = 'Franchise Applications';
 var BULK = 'Bulk Orders';
 var CUSTOMERS = 'Customers';
 var ORDER_HEADERS = ['Created', 'Order ref', 'Status', 'Razorpay order id', 'Payment id', 'Paid at', 'Name', 'Phone', 'Email',
-  'Type', 'Address', 'Map link', 'Distance (km)', 'Items', 'Subtotal', 'Delivery fee', 'Total', 'Notes', 'Promo', 'Discount', 'Source', 'Progress', 'ETA (min)', 'ETA set at', 'Message to customer'];
+  'Type', 'Address', 'Map link', 'Distance (km)', 'Items', 'Subtotal', 'Delivery fee', 'Total', 'Notes', 'Promo', 'Discount', 'Source', 'Progress', 'ETA (min)', 'ETA set at', 'Message to customer', 'Finished at'];
 var BULK_HEADERS = ['Received', 'Name', 'Phone', 'Email', 'Occasion', 'Date needed', 'Time needed', 'People', 'Order details', 'Special / Jain', 'Plates & cutlery', 'Budget', 'Type', 'Address', 'Notes', 'Status'];
 var CUSTOMER_HEADERS = ['Created', 'Email', 'Name', 'Phone', 'Last sign-in', 'Sign-in method'];
 var FRANCHISE_HEADERS = ['Received', 'Name', 'Phone', 'Email', 'City', 'Message'];
@@ -51,6 +51,7 @@ function formatOrders_(sh) {
   var rows = Math.max(sh.getMaxRows() - 1, 1);
   sh.getRange(2, 22, rows, 1).setDataValidation(list);
   sh.getRange(2, 24, rows, 1).setNumberFormat('dd-mmm hh:mm:ss');
+  sh.getRange(2, 26, rows, 1).setNumberFormat('dd-mmm hh:mm:ss');
 }
 
 function sheet_(name, headers) {
@@ -61,7 +62,7 @@ function sheet_(name, headers) {
     if (have > 0 && have < headers.length) {
       sh.getRange(1, have + 1, 1, headers.length - have).setValues([headers.slice(have)]).setFontWeight('bold').setBackground('#FFE0B8');
     }
-    if (sh.getLastColumn() >= 24 && !sh.getRange(2, 22).getDataValidation()) formatOrders_(sh);
+    if ((have > 0 && have < headers.length) || (sh.getLastColumn() >= 24 && !sh.getRange(2, 22).getDataValidation())) formatOrders_(sh);
   }
   if (!sh) {
     sh = ss.insertSheet(name);
@@ -77,7 +78,13 @@ var SETTINGS = 'Settings';
 function onEdit(e) {
   try {
     var sh = e.range.getSheet();
-    if (sh.getName() !== ORDERS || e.range.getRow() < 2 || e.range.getColumn() !== 23) return;
+    if (sh.getName() !== ORDERS || e.range.getRow() < 2) return;
+    if (e.range.getColumn() === 22) {      // Progress changed: remember WHEN it was finished (the customer sees it for 10 minutes, then it clears)
+      var st = normProgress_(e.value);
+      sh.getRange(e.range.getRow(), 26).setValue(st === 'Delivered' || st === 'Cancelled' ? new Date() : '');
+      return;
+    }
+    if (e.range.getColumn() !== 23) return;
     var n = Number(e.value);
     sh.getRange(e.range.getRow(), 24).setValue(e.value === undefined || e.value === '' || isNaN(n) ? '' : new Date());
     if (e.value !== undefined && e.value !== '' && !isNaN(n)) e.range.setBackground(null).clearNote();      // time given: remove the orange
@@ -149,7 +156,7 @@ function orderView_(r) {
   var etaAt = (mins > 0 && at instanceof Date) ? at.getTime() + mins * 60000 : null;
   return { ok: true, ref: String(r[1]), progress: normProgress_(r[21]), items: String(r[13] || ''), total: r[16], type: String(r[9] || ''), address: String(r[10] || ''),
     etaAt: etaAt, etaMin: mins > 0 ? mins : null, note: String(r[24] || ''), serverNow: new Date().getTime(),
-    createdAt: r[0] instanceof Date ? r[0].getTime() : null, subtotal: r[14], fee: r[15], discount: Number(r[19]) || 0, promo: String(r[18] || ''), paymentId: String(r[4] || '') };
+    createdAt: r[0] instanceof Date ? r[0].getTime() : null, finishedAt: r[25] instanceof Date ? r[25].getTime() : null, subtotal: r[14], fee: r[15], discount: Number(r[19]) || 0, promo: String(r[18] || ''), paymentId: String(r[4] || '') };
 }
 
 /** All of the signed-in customer's PAID orders, newest first (max 40) — for the "My orders" page. */
@@ -167,14 +174,14 @@ function myOrders_(q) {
   return { ok: true, orders: out, serverNow: new Date().getTime() };
 }
 
-/** The customer's orders for the floating tracker: every one still active (up to 12 h) plus ones finished in the last 3 h (max 6). */
+/** The customer's orders for the floating tracker: every one still active (up to 12 h), and a finished one only for 10 minutes after it was delivered / cancelled (max 6). */
 function activeOrders_(q) {
   var all = myOrders_(q).orders;
   var now = new Date().getTime(), out = [];
   for (var i = 0; i < all.length && out.length < 6; i++) {
     var o = all[i];
     var finished = o.progress === 'Delivered' || o.progress === 'Cancelled';
-    if (o.createdAt && now - o.createdAt <= (finished ? 3 : 12) * 60 * 60 * 1000) out.push(o);
+    if (finished ? (o.finishedAt && now - o.finishedAt <= 10 * 60 * 1000) : (o.createdAt && now - o.createdAt <= 12 * 60 * 60 * 1000)) out.push(o);
   }
   return { ok: true, orders: out, serverNow: now };
 }
