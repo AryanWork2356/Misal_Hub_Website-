@@ -1581,3 +1581,74 @@ html.lenis, html.lenis body { height: auto; }
 
 .pg-about .ot-call { background: transparent !important; border: 1.5px solid #FF8A1F !important; color: #FFB067 !important; font-weight: 800; text-decoration: none; }
 .pg-about .ot-call:hover { background: rgba(255,138,31,.15) !important; }
+
+/* =====================================================================
+   SIGN-IN CARD (checkout) + account strip
+   ===================================================================== */
+.pg-about .si-card { margin: 4px 0 8px; padding: 22px 20px; border-radius: 20px; border: 1px solid rgba(255,138,31,.45); background: linear-gradient(180deg, rgba(255,138,31,.12), rgba(255,255,255,.03)); box-shadow: 0 14px 30px rgba(0,0,0,.3); }
+.pg-about .si-head { display: flex; gap: 12px; align-items: flex-start; margin-bottom: 16px; }
+.pg-about .si-head > span { font-size: 1.8rem; line-height: 1; }
+.pg-about .si-head h3 { margin: 0 0 4px; font: 800 1.1rem 'Poppins', sans-serif; color: #FFB067 !important; }
+.pg-about .si-head p { margin: 0; font-size: .84rem; line-height: 1.55; opacity: .85; }
+.pg-about .si-google { display: flex; justify-content: center; min-height: 44px; margin-bottom: 4px; }
+.pg-about .si-or { display: flex; align-items: center; gap: 12px; margin: 14px 0; font-size: .75rem; letter-spacing: 2px; text-transform: uppercase; opacity: .6; }
+.pg-about .si-or::before, .pg-about .si-or::after { content: ''; flex: 1; height: 1px; background: rgba(255,138,31,.35); }
+.pg-about .si-form { display: grid; gap: 9px; }
+.pg-about .si-form label { font: 700 .74rem 'Poppins', sans-serif; letter-spacing: 1px; text-transform: uppercase; color: #FFB067 !important; }
+.pg-about .si-form label b { text-transform: none; letter-spacing: 0; color: #fff !important; }
+.pg-about .si-row { display: flex; gap: 9px; }
+.pg-about .si-card input { flex: 1; min-width: 0; height: 50px; padding: 0 16px; border-radius: 13px; border: 1.5px solid rgba(255,138,31,.6) !important; background: #1d0d04 !important; color: #FFD9A8 !important; font: 700 1rem 'Poppins', sans-serif; box-shadow: inset 0 2px 8px rgba(0,0,0,.35); }
+.pg-about .si-card input::placeholder { color: rgba(255,196,138,.5); font-weight: 500; }
+.pg-about .si-card input:focus { outline: 0; border-color: #FF8A1F !important; box-shadow: 0 0 0 3px rgba(255,138,31,.28), inset 0 2px 8px rgba(0,0,0,.35); }
+.pg-about .si-row button, .pg-about .si-go { flex: 0 0 auto; height: 50px; padding: 0 22px; border: 0; border-radius: 13px; cursor: pointer; background: linear-gradient(135deg, #FFB067, #FF8A1F); color: #2A1206 !important; font: 800 .92rem 'Poppins', sans-serif; box-shadow: 0 8px 20px rgba(255,138,31,.4); }
+.pg-about .si-go { width: 100%; margin-top: 6px; }
+.pg-about .si-row button:disabled, .pg-about .si-go:disabled { opacity: .6; cursor: default; }
+.pg-about .si-small { margin: 4px 0 0; font-size: .78rem; opacity: .8; line-height: 1.7; }
+.pg-about .si-small button { border: 0; background: none; padding: 0; color: #FFB067; text-decoration: underline; cursor: pointer; font: inherit; }
+.pg-about .si-msg { margin: 12px 0 0; padding: 10px 12px; border-radius: 12px; border: 1px solid #ef4444; background: rgba(239,68,68,.12); color: #fca5a5; font-size: .84rem; line-height: 1.5; }
+.pg-about .si-profile input { flex: none; width: 100%; }
+.pg-about .acct-strip { margin: 0 0 12px; padding: 9px 14px; border-radius: 12px; font-size: .8rem; background: rgba(34,197,94,.1); border: 1px solid rgba(34,197,94,.35); line-height: 1.5; word-break: break-all; }
+.pg-about .acct-strip b { color: #86efac; }
+.pg-about .acct-strip button { border: 0; background: none; padding: 0; color: #FFB067; text-decoration: underline; cursor: pointer; font: inherit; }
+.pg-about .order-form input[readonly] { opacity: .75; cursor: not-allowed; }
+
+/* sign-in rows never overflow the card on small phones */
+.pg-about .si-row { width: 100%; }
+.pg-about .si-row input { width: 0 !important; flex: 1 1 0 !important; min-width: 0 !important; }
+.pg-about .si-row button { white-space: nowrap; }
+@media (max-width: 400px) { .pg-about .si-row button { padding: 0 16px; } }
+
+/* =====================================================================
+   PROFILE CIRCLE (header) + sign-in dialog
+   ===================================================================== */
+.pg-about .acct { position: relative; flex: 0 0 auto; }
+.pg-about .acct-btn { position: relative; display: grid; place-items: center; width: 44px; height: 44px; padding: 0; border-radius: 50%; cursor: pointer; overflow: visible;
+  border: 2px solid rgba(255,138,31,.7); background: #3b1e0f; transition: transform .2s, box-shadow .2s; }
+.pg-about .acct-btn:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(255,138,31,.35); }
+.pg-about .acct-btn > img, .pg-about .acct-btn > .acct-initials, .pg-about .acct-btn > svg { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; }
+.pg-about .acct-btn svg { padding: 6px 6px 0; fill: #8a6a4f; background: linear-gradient(180deg, #5a3a22, #3b1e0f); }
+.pg-about .acct-btn svg circle, .pg-about .acct-btn svg path { fill: #b99372; }
+.pg-about .acct-btn.in { border-color: #4ade80; box-shadow: 0 0 0 2px rgba(74,222,128,.25); }
+.pg-about .acct-initials { display: grid; place-items: center; background: linear-gradient(135deg, #FFB067, #FF8A1F); color: #2A1206 !important; font: 800 .95rem 'Poppins', sans-serif; }
+.pg-about .acct-dot { position: absolute; right: -1px; top: -1px; width: 12px; height: 12px; border-radius: 50%; background: #FF8A1F; border: 2px solid #1b0d05; animation: about-waDot 1.6s ease-in-out infinite; }
+.pg-about .acct-pop { position: absolute; right: 0; top: calc(100% + 10px); z-index: 1400; min-width: 230px; padding: 8px; border-radius: 16px; background: #2A1206; border: 1px solid rgba(255,138,31,.5); box-shadow: 0 20px 44px rgba(0,0,0,.55); }
+.pg-about .acct-who { display: grid; gap: 2px; padding: 10px 12px 12px; margin-bottom: 4px; border-bottom: 1px solid rgba(255,138,31,.25); }
+.pg-about .acct-who b { font: 800 .95rem 'Poppins', sans-serif; color: #fff !important; }
+.pg-about .acct-who small { font-size: .74rem; color: #FFB067 !important; word-break: break-all; }
+.pg-about .acct-pop button { display: block; width: 100%; padding: 11px 12px; border: 0; border-radius: 10px; background: none; text-align: left; cursor: pointer; font: 600 .86rem 'Poppins', sans-serif; color: #FFE0B8 !important; }
+.pg-about .acct-pop button:hover { background: rgba(255,138,31,.15); }
+.pg-about .acct-pop button.out { color: #fca5a5 !important; }
+.pg-about .nav-account { display: flex; align-items: center; margin-left: 12px; }
+.pg-about .acct-phone { display: none; }
+.pg-about .acct-modal { position: fixed; inset: 0; z-index: 1500; display: grid; place-items: center; padding: 16px; }
+.pg-about .acct-backdrop { position: absolute; inset: 0; background: rgba(8,3,1,.72); backdrop-filter: blur(3px); }
+.pg-about .acct-card { position: relative; width: min(440px, 100%); max-height: 92vh; overflow-y: auto; border-radius: 22px; background: #241109; box-shadow: 0 30px 70px rgba(0,0,0,.6); animation: about-cpIn .35s ease both; }
+.pg-about .acct-card .si-card { margin: 0; border-radius: 22px; }
+.pg-about .acct-close { position: absolute; right: 12px; top: 10px; z-index: 2; width: 34px; height: 34px; border-radius: 50%; border: 1px solid rgba(255,138,31,.5); background: transparent; color: #FFB067 !important; font-size: 1.4rem; line-height: 1; cursor: pointer; }
+@media (max-width: 768px) {
+  .pg-about .nav-account { display: none; }
+  .pg-about .acct-phone { display: block; }
+  .pg-about .acct-btn { width: 38px; height: 38px; }
+  .pg-about .acct-pop { right: -8px; }
+  .pg-about .navbar .nav-inner { gap: 8px; }
+}

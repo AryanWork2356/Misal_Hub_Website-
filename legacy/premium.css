@@ -887,3 +887,74 @@ body.order-page .ot-pill { bottom: 96px; }
 
 .ot-call { background: transparent !important; border: 1.5px solid #FF8A1F !important; color: #FFB067 !important; font-weight: 800; text-decoration: none; }
 .ot-call:hover { background: rgba(255,138,31,.15) !important; }
+
+/* =====================================================================
+   SIGN-IN CARD (checkout) + account strip
+   ===================================================================== */
+.si-card { margin: 4px 0 8px; padding: 22px 20px; border-radius: 20px; border: 1px solid rgba(255,138,31,.45); background: linear-gradient(180deg, rgba(255,138,31,.12), rgba(255,255,255,.03)); box-shadow: 0 14px 30px rgba(0,0,0,.3); }
+.si-head { display: flex; gap: 12px; align-items: flex-start; margin-bottom: 16px; }
+.si-head > span { font-size: 1.8rem; line-height: 1; }
+.si-head h3 { margin: 0 0 4px; font: 800 1.1rem 'Poppins', sans-serif; color: #FFB067 !important; }
+.si-head p { margin: 0; font-size: .84rem; line-height: 1.55; opacity: .85; }
+.si-google { display: flex; justify-content: center; min-height: 44px; margin-bottom: 4px; }
+.si-or { display: flex; align-items: center; gap: 12px; margin: 14px 0; font-size: .75rem; letter-spacing: 2px; text-transform: uppercase; opacity: .6; }
+.si-or::before, .si-or::after { content: ''; flex: 1; height: 1px; background: rgba(255,138,31,.35); }
+.si-form { display: grid; gap: 9px; }
+.si-form label { font: 700 .74rem 'Poppins', sans-serif; letter-spacing: 1px; text-transform: uppercase; color: #FFB067 !important; }
+.si-form label b { text-transform: none; letter-spacing: 0; color: #fff !important; }
+.si-row { display: flex; gap: 9px; }
+.si-card input { flex: 1; min-width: 0; height: 50px; padding: 0 16px; border-radius: 13px; border: 1.5px solid rgba(255,138,31,.6) !important; background: #1d0d04 !important; color: #FFD9A8 !important; font: 700 1rem 'Poppins', sans-serif; box-shadow: inset 0 2px 8px rgba(0,0,0,.35); }
+.si-card input::placeholder { color: rgba(255,196,138,.5); font-weight: 500; }
+.si-card input:focus { outline: 0; border-color: #FF8A1F !important; box-shadow: 0 0 0 3px rgba(255,138,31,.28), inset 0 2px 8px rgba(0,0,0,.35); }
+.si-row button, .si-go { flex: 0 0 auto; height: 50px; padding: 0 22px; border: 0; border-radius: 13px; cursor: pointer; background: linear-gradient(135deg, #FFB067, #FF8A1F); color: #2A1206 !important; font: 800 .92rem 'Poppins', sans-serif; box-shadow: 0 8px 20px rgba(255,138,31,.4); }
+.si-go { width: 100%; margin-top: 6px; }
+.si-row button:disabled, .si-go:disabled { opacity: .6; cursor: default; }
+.si-small { margin: 4px 0 0; font-size: .78rem; opacity: .8; line-height: 1.7; }
+.si-small button { border: 0; background: none; padding: 0; color: #FFB067; text-decoration: underline; cursor: pointer; font: inherit; }
+.si-msg { margin: 12px 0 0; padding: 10px 12px; border-radius: 12px; border: 1px solid #ef4444; background: rgba(239,68,68,.12); color: #fca5a5; font-size: .84rem; line-height: 1.5; }
+.si-profile input { flex: none; width: 100%; }
+.acct-strip { margin: 0 0 12px; padding: 9px 14px; border-radius: 12px; font-size: .8rem; background: rgba(34,197,94,.1); border: 1px solid rgba(34,197,94,.35); line-height: 1.5; word-break: break-all; }
+.acct-strip b { color: #86efac; }
+.acct-strip button { border: 0; background: none; padding: 0; color: #FFB067; text-decoration: underline; cursor: pointer; font: inherit; }
+.order-form input[readonly] { opacity: .75; cursor: not-allowed; }
+
+/* sign-in rows never overflow the card on small phones */
+.si-row { width: 100%; }
+.si-row input { width: 0 !important; flex: 1 1 0 !important; min-width: 0 !important; }
+.si-row button { white-space: nowrap; }
+@media (max-width: 400px) { .si-row button { padding: 0 16px; } }
+
+/* =====================================================================
+   PROFILE CIRCLE (header) + sign-in dialog
+   ===================================================================== */
+.acct { position: relative; flex: 0 0 auto; }
+.acct-btn { position: relative; display: grid; place-items: center; width: 44px; height: 44px; padding: 0; border-radius: 50%; cursor: pointer; overflow: visible;
+  border: 2px solid rgba(255,138,31,.7); background: #3b1e0f; transition: transform .2s, box-shadow .2s; }
+.acct-btn:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(255,138,31,.35); }
+.acct-btn > img, .acct-btn > .acct-initials, .acct-btn > svg { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; }
+.acct-btn svg { padding: 6px 6px 0; fill: #8a6a4f; background: linear-gradient(180deg, #5a3a22, #3b1e0f); }
+.acct-btn svg circle, .acct-btn svg path { fill: #b99372; }
+.acct-btn.in { border-color: #4ade80; box-shadow: 0 0 0 2px rgba(74,222,128,.25); }
+.acct-initials { display: grid; place-items: center; background: linear-gradient(135deg, #FFB067, #FF8A1F); color: #2A1206 !important; font: 800 .95rem 'Poppins', sans-serif; }
+.acct-dot { position: absolute; right: -1px; top: -1px; width: 12px; height: 12px; border-radius: 50%; background: #FF8A1F; border: 2px solid #1b0d05; animation: waDot 1.6s ease-in-out infinite; }
+.acct-pop { position: absolute; right: 0; top: calc(100% + 10px); z-index: 1400; min-width: 230px; padding: 8px; border-radius: 16px; background: #2A1206; border: 1px solid rgba(255,138,31,.5); box-shadow: 0 20px 44px rgba(0,0,0,.55); }
+.acct-who { display: grid; gap: 2px; padding: 10px 12px 12px; margin-bottom: 4px; border-bottom: 1px solid rgba(255,138,31,.25); }
+.acct-who b { font: 800 .95rem 'Poppins', sans-serif; color: #fff !important; }
+.acct-who small { font-size: .74rem; color: #FFB067 !important; word-break: break-all; }
+.acct-pop button { display: block; width: 100%; padding: 11px 12px; border: 0; border-radius: 10px; background: none; text-align: left; cursor: pointer; font: 600 .86rem 'Poppins', sans-serif; color: #FFE0B8 !important; }
+.acct-pop button:hover { background: rgba(255,138,31,.15); }
+.acct-pop button.out { color: #fca5a5 !important; }
+.nav-account { display: flex; align-items: center; margin-left: 12px; }
+.acct-phone { display: none; }
+.acct-modal { position: fixed; inset: 0; z-index: 1500; display: grid; place-items: center; padding: 16px; }
+.acct-backdrop { position: absolute; inset: 0; background: rgba(8,3,1,.72); backdrop-filter: blur(3px); }
+.acct-card { position: relative; width: min(440px, 100%); max-height: 92vh; overflow-y: auto; border-radius: 22px; background: #241109; box-shadow: 0 30px 70px rgba(0,0,0,.6); animation: cpIn .35s ease both; }
+.acct-card .si-card { margin: 0; border-radius: 22px; }
+.acct-close { position: absolute; right: 12px; top: 10px; z-index: 2; width: 34px; height: 34px; border-radius: 50%; border: 1px solid rgba(255,138,31,.5); background: transparent; color: #FFB067 !important; font-size: 1.4rem; line-height: 1; cursor: pointer; }
+@media (max-width: 768px) {
+  .nav-account { display: none; }
+  .acct-phone { display: block; }
+  .acct-btn { width: 38px; height: 38px; }
+  .acct-pop { right: -8px; }
+  .navbar .nav-inner { gap: 8px; }
+}

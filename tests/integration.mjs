@@ -18,7 +18,8 @@ const ok = (name, cond, extra = '') => { cond ? pass++ : fail++; console.log(`${
 /* ---------- stand-ins ---------- */
 const rzpOrders = [];           // what our server asked Razorpay to create
 const sheetEvents = [];
-const promoUsed = new Set();    // stand-in for the Sheet: phone|code already used         // what our server sent to the Apps Script
+const promoUsed = new Set();
+const sentCodes = new Map(), customers = new Map();   // stand-ins for the Customers tab + the e-mails the script sends    // stand-in for the Sheet: phone|code already used         // what our server sent to the Apps Script
 const mk = (handler, port) => new Promise((res) => { const s = http.createServer(handler).listen(port, '127.0.0.1', () => res(s)); });
 const readBody = (req) => new Promise((r) => { let b = ''; req.on('data', (c) => (b += c)); req.on('end', () => r(b)); });
 
@@ -39,22 +40,38 @@ const script = await mk(async (req, res) => {
       const okOrder = u.searchParams.get('ref') === 'MH-TEST-1' && u.searchParams.get('phone') === '9820145678';
       return res.end(JSON.stringify(okOrder ? { ok: true, progress: 'Out for delivery', items: '2 x Misal Pav - Rs 180', total: 230, type: 'Delivery', address: 'Flat 4, Silver Cassia', etaAt: 1790000000000, etaMin: 40, note: 'Rain, a little late', serverNow: 1789999000000, secretLeak: 'x' } : { ok: false, error: 'not found' }));
     }
+    if (u.searchParams.get('action') === 'active_order') {
+      const em = u.searchParams.get('email');
+      return res.end(JSON.stringify(em === 'tracker@example.com' ? { ok: true, ref: 'MH-LIVE-9', progress: 'Preparing', items: '1 x Misal Pav - Rs 90', total: 140, type: 'Pickup', address: '', etaAt: 1790000000000, etaMin: 20, note: '', serverNow: 1789999000000 } : { ok: true }));
+    }
     return res.end('{"ok":true,"delivery":"YES","pickup":"YES","message":""}');
   }
   const body = JSON.parse((await readBody(req)) || '{}');
   if (body.secret !== SCRIPT_SECRET) { res.writeHead(200); return res.end('{"ok":false,"error":"unauthorized"}'); }
   res.setHeader('Content-Type', 'application/json');
-  if (body.action === 'promo_check') return res.end(JSON.stringify({ ok: true, used: promoUsed.has(`${body.phone}|${body.code}`) }));
+  if (body.action === 'send_code') { sentCodes.set(body.email, body.code); return res.end('{"ok":true}'); }
+  if (body.action === 'customer_login') { const c = customers.get(body.email) || { name: body.name || '', phone: '' }; customers.set(body.email, c); return res.end(JSON.stringify({ ok: true, name: c.name, phone: c.phone })); }
+  if (body.action === 'customer_save') { customers.set(body.email, { name: body.name, phone: body.phone }); return res.end('{"ok":true}'); }
+  if (body.action === 'promo_check') return res.end(JSON.stringify({ ok: true, used: promoUsed.has(`${body.phone}|${body.code}`) || promoUsed.has(`${body.email}|${body.code}`) }));
   if (body.action === 'order_created' && body.promo) {
-    const k = `${body.customer.phone}|${body.promo}`;
-    if (promoUsed.has(k)) return res.end('{"ok":false,"error":"promo_used"}');
-    promoUsed.add(k);
+    const k = `${body.customer.phone}|${body.promo}`, k2 = `${body.customer.email}|${body.promo}`;
+    if (promoUsed.has(k) || promoUsed.has(k2)) return res.end('{"ok":false,"error":"promo_used"}');
+    promoUsed.add(k); promoUsed.add(k2);
   }
   sheetEvents.push(body);
   res.writeHead(200, { 'Content-Type': 'application/json' }); res.end('{"ok":true}');
 }, 4011);
 
-const scriptPaused = await mk((req, res) => {   // a Sheet whose Settings tab says: Pickup = NO, message set
+const scriptPaused = await mk(async (req, res) => {   // a Sheet whose Settings tab says: Pickup = NO, message set
+  if (req.method === 'POST') {                                    // it also signs people in (codes + accounts)
+    const body = JSON.parse((await readBody(req)) || '{}');
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    if (body.secret !== SCRIPT_SECRET) return res.end('{"ok":false,"error":"unauthorized"}');
+    if (body.action === 'send_code') { sentCodes.set(body.email, body.code); return res.end('{"ok":true}'); }
+    if (body.action === 'customer_login') { const c = customers.get(body.email) || { name: body.name || '', phone: '' }; customers.set(body.email, c); return res.end(JSON.stringify({ ok: true, name: c.name, phone: c.phone })); }
+    if (body.action === 'customer_save') { customers.set(body.email, { name: body.name, phone: body.phone }); return res.end('{"ok":true}'); }
+    return res.end('{"ok":true}');
+  }
   res.writeHead(200, { 'Content-Type': 'application/json' });
   res.end(JSON.stringify(req.url.includes(`secret=${SCRIPT_SECRET}`) ? { ok: true, delivery: 'YES', pickup: 'NO', message: 'Closed today' } : { ok: false, error: 'unauthorized' }));
 }, 4012);
@@ -81,10 +98,31 @@ const D = startServer(3203, { RAZORPAY_KEY_ID: '', RAZORPAY_KEY_SECRET: '', APPS
 const E = startServer(3204, { ...FULL, ORDERS_TEST_MODE: '1' });                      // TEST MODE flag set but real keys present
 const F = startServer(3205, { ...FULL, ORDERS_DELIVERY_PAUSED: '1' });                // owner paused delivery (Vercel override)
 const H = startServer(3207, FULL);                                                     // promo-code tests (own server: separate rate limit)
+const I = startServer(3208, FULL);                                                     // sign-in / account tests (own rate limit)
 const G = startServer(3206, { ...FULL, APPS_SCRIPT_URL: 'http://127.0.0.1:4012/exec' }); // owner paused pickup via the Sheet's Settings tab
-await Promise.all([waitFor(3200), waitFor(3201), waitFor(3202), waitFor(3203), waitFor(3204), waitFor(3205), waitFor(3206), waitFor(3207)]);
+await Promise.all([waitFor(3200), waitFor(3201), waitFor(3202), waitFor(3203), waitFor(3204), waitFor(3205), waitFor(3206), waitFor(3207), waitFor(3208)]);
 
+const jars = new Map();
+const cookieOf = (r, old = '') => { const sc = r.headers.getSetCookie?.() || []; const m = sc.map((c) => c.split(';')[0]).find((c) => c.startsWith('mh_session=')); return m ?? old; };
+/** real sign-in: ask for a code, read it from the stand-in mailbox, verify, then save name + phone. Returns the session cookie. */
+async function signIn(port, email, phone = '9820145678', name = 'Test Customer') {
+  const k = `${port}|${email}`;
+  if (jars.has(k)) return jars.get(k);
+  const call = (path, body, cookie = '') => fetch(`http://127.0.0.1:${port}${path}`, { method: 'POST', headers: { 'Content-Type': 'application/json', ...(cookie ? { cookie } : {}) }, body: JSON.stringify(body) });
+  const st = await (await call('/api/auth/email/start', { email })).json();
+  const v = await call('/api/auth/email/verify', { email, code: sentCodes.get(email), challenge: st.challenge });
+  let cookie = cookieOf(v);
+  const vj = await v.json();
+  if (vj.needsProfile) { const p = await call('/api/auth/profile', { name, phone }, cookie); cookie = cookieOf(p, cookie); }
+  jars.set(k, cookie); return cookie;
+}
 const post = async (port, url, body, headers = {}) => {
+  if (!headers.cookie && headers.cookie !== '' && (url === '/api/checkout/create' || url === '/api/promo/check') && typeof body === 'object') {
+    const ph = String(body.customer?.phone ?? body.phone ?? '').replace(/\D/g, '').slice(-10) || '9820145678';
+    const usable = ph.length === 10 && /^[6-9]/.test(ph) && !/^(9999999999|9876543210)$/.test(ph);
+    const who = usable ? ph : '9820145678';
+    headers = { ...headers, cookie: await signIn(port, `u${who}@example.com`, who) };
+  }
   const r = await fetch(`http://127.0.0.1:${port}${url}`, { method: 'POST', headers: { 'Content-Type': 'application/json', ...headers }, body: typeof body === 'string' ? body : JSON.stringify(body) });
   return { status: r.status, json: await r.json().catch(() => ({})) };
 };
@@ -253,6 +291,62 @@ try {
   r = await post(3200, '/api/track', {});
   ok('track: empty request -> 404, no crash', r.status === 404);
 
+  /* ----- sign-in (accounts) ----- */
+  const get = async (port, url, cookie = '') => { const r = await fetch(`http://127.0.0.1:${port}${url}`, { headers: cookie ? { cookie } : {} }); return { status: r.status, json: await r.json().catch(() => ({})) }; };
+  r = await post(3208, '/api/checkout/create', { items: [{ id: 'misal-pav', mode: 'regular', qty: 1 }], customer, type: 'Pickup' }, { cookie: '' });
+  ok('sign-in required: ordering without being signed in -> 401 "signin"', r.status === 401 && r.json.code === 'signin');
+  r = await get(3208, '/api/auth/me');
+  ok('me: nobody signed in -> user null, e-mail sign-in available', r.json.user === null && r.json.available === true);
+  const em = 'new.customer@example.com';
+  const startR = await fetch('http://127.0.0.1:3208/api/auth/email/start', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email: em }) });
+  const start = await startR.json();
+  ok('e-mail code: a 6-digit code was e-mailed, and the code is NEVER in the website answer', start.ok && /^\d{6}$/.test(sentCodes.get(em) || '') && !JSON.stringify(start).includes(sentCodes.get(em)));
+  const callA = (path, body, cookie = '') => fetch(`http://127.0.0.1:3208${path}`, { method: 'POST', headers: { 'Content-Type': 'application/json', ...(cookie ? { cookie } : {}) }, body: JSON.stringify(body) });
+  let vr = await callA('/api/auth/email/verify', { email: em, code: '000000', challenge: start.challenge });
+  ok('wrong code -> refused (400)', vr.status === 400 && !cookieOf(vr));
+  vr = await callA('/api/auth/email/verify', { email: 'other@example.com', code: sentCodes.get(em), challenge: start.challenge });
+  ok('the code only works for the e-mail it was sent to', vr.status === 400);
+  vr = await callA('/api/auth/email/verify', { email: em, code: sentCodes.get(em), challenge: start.challenge });
+  const vj = await vr.json(); const ck = cookieOf(vr);
+  ok('right code -> signed in (cookie), first time asks for name + mobile', vj.ok && ck.startsWith('mh_session=') && vj.needsProfile === true && vj.user.email === em);
+  r = await get(3208, '/api/auth/me', ck);
+  ok('me: shows the account', r.json.user?.email === em && r.json.user.phone === '');
+  r = await post(3208, '/api/checkout/create', { items: [{ id: 'misal-pav', mode: 'regular', qty: 1 }], customer, type: 'Pickup' }, { cookie: ck });
+  ok('order is allowed with a session', r.json.ok === true);
+  let pr = await callA('/api/auth/profile', { name: 'Asha', phone: '9999999999' }, ck);
+  ok('profile: a made-up mobile number is refused (400)', pr.status === 400);
+  pr = await callA('/api/auth/profile', { name: 'A', phone: '9820145678' }, ck);
+  ok('profile: a missing / too-short name is refused (400)', pr.status === 400);
+  pr = await callA('/api/auth/profile', { name: 'Asha Rao', phone: '98201 45678' }, ck);
+  const ck2 = cookieOf(pr, ck);
+  ok('profile saved: name + mobile now on the account', (await pr.json()).ok && customers.get(em)?.phone === '9820145678');
+  r = await get(3208, '/api/auth/me', ck2);
+  ok('me: name and phone present after saving', r.json.user.name === 'Asha Rao' && r.json.user.phone === '9820145678');
+  const again = await (await callA('/api/auth/email/start', { email: em })).json();
+  const vr2 = await callA('/api/auth/email/verify', { email: em, code: sentCodes.get(em), challenge: again.challenge });
+  const vj2 = await vr2.json();
+  ok('signing in again (any device) brings the saved name + mobile back, no questions', vj2.ok && vj2.needsProfile === false && vj2.user.phone === '9820145678');
+  r = await get(3208, '/api/auth/me', 'mh_session=eyJlbWFpbCI6ImV2aWxAZXhhbXBsZS5jb20iLCJleHAiOjk5OTk5OTk5OTk5OTl9.forged');
+  ok('a forged cookie is not accepted', r.json.user === null);
+  await callA('/api/auth/logout', {}, ck2);
+  ok('sign-out endpoint works', (await callA('/api/auth/logout', {}, ck2)).status === 200);
+  r = await post(3208, '/api/promo/check', { code: 'MISAL10', phone: '9820145678' }, { cookie: '' });
+  ok('offer check needs sign-in too (401)', r.status === 401);
+  // one offer per ACCOUNT as well as per phone number
+  const acct1 = await signIn(3208, 'one.account@example.com', '9870011223');
+  r = await post(3208, '/api/checkout/create', { items: [{ id: 'misal-pav', mode: 'regular', qty: 1 }], customer: { ...customer, phone: '9870011223' }, type: 'Pickup', promo: 'MISAL10' }, { cookie: acct1 });
+  ok('account: first order with the offer works', r.json.ok && r.json.totals.discount === 9);
+  r = await post(3208, '/api/checkout/create', { items: [{ id: 'misal-pav', mode: 'regular', qty: 1 }], customer: { ...customer, phone: '9870044556' }, type: 'Pickup', promo: 'MISAL10' }, { cookie: acct1 });
+  ok('account: the SAME account with a DIFFERENT phone number is refused (409 promo_used)', r.status === 409 && r.json.code === 'promo_used');
+  // tracking follows the account
+  const tr = await signIn(3208, 'tracker@example.com', '9870099887');
+  r = await get(3208, '/api/orders/active', tr);
+  ok('tracker: the signed-in account sees its active order (any device)', r.json.order?.ref === 'MH-LIVE-9' && r.json.order.etaMin === 20 && r.json.order.type === 'Pickup');
+  r = await get(3208, '/api/orders/active', await signIn(3208, 'someone.else@example.com', '9870055443'));
+  ok('tracker: another account sees nothing', r.json.order === null);
+  r = await get(3208, '/api/orders/active');
+  ok('tracker: signed out -> nothing', r.json.order === null);
+
   /* ----- manual pause switch ----- */
   let st = await (await fetch('http://127.0.0.1:3200/api/status')).json();
   ok('status: everything on by default', st.delivery === true && st.pickup === true);
@@ -272,7 +366,7 @@ try {
   for (let i = 0; i < 8; i++) { const x = await post(3200, '/api/franchise', { ...app, phone: '123' }); if (x.status === 429) limited++; }
   ok('franchise endpoint is rate limited against abuse', limited > 0, `${limited} of 8 blocked`);
 } finally {
-  [A, B, C, D, E, F, G, H].forEach((p) => p.kill());
+  [A, B, C, D, E, F, G, H, I].forEach((p) => p.kill());
   rzp.close(); script.close(); scriptPaused.close();
 }
 console.log(`\n${pass}/${pass + fail} passed`);

@@ -2,59 +2,46 @@
 import { useCallback, useEffect, useState } from 'react';
 import { isFinished, minutesLeft, stepIndex, type OrderView } from '@/lib/eta';
 import { SHOP } from '@/lib/pricing';
-
-const KEY = 'mh_active_order';
-type Active = { ref: string; phone: string; at: number };
-const MAX_AGE = 12 * 60 * 60 * 1000;       // stop tracking after 12 hours
+import { useAccount } from '@/lib/useAccount';
 
 /**
  * Floating "Track your order" pill (every page) + a bottom sheet with live status, the countdown and the order.
- * The shop sets the ETA in the Google Sheet; the countdown here drops every minute by itself.
+ * It follows the SIGNED-IN account, so it works on any phone or laptop. The shop sets the ETA in the Google Sheet;
+ * the countdown here drops every minute by itself.
  */
 export default function OrderTracker() {
-  const [active, setActive] = useState<Active | null>(null);
+  const acct = useAccount();
   const [order, setOrder] = useState<OrderView | null>(null);
   const [skew, setSkew] = useState(0);
   const [now, setNow] = useState(0);
   const [open, setOpen] = useState(false);
-
-  const read = useCallback(() => {
-    try {
-      const a = JSON.parse(localStorage.getItem(KEY) || 'null') as Active | null;
-      if (a && a.ref && a.phone && Date.now() - a.at < MAX_AGE) { setActive(a); return; }
-      if (a) localStorage.removeItem(KEY);
-    } catch { /* ignore */ }
-    setActive(null); setOrder(null);
-  }, []);
-
-  useEffect(() => {
-    read();
-    const onPlaced = () => { read(); };
-    const onOpen = () => { read(); setOpen(true); };
-    window.addEventListener('mh:order-placed', onPlaced);
-    window.addEventListener('mh:open-tracker', onOpen);
-    return () => { window.removeEventListener('mh:order-placed', onPlaced); window.removeEventListener('mh:open-tracker', onOpen); };
-  }, [read]);
+  const signedIn = !!acct.user;
 
   const load = useCallback(async () => {
-    if (!active) return;
+    if (!signedIn) { setOrder(null); return; }
     try {
-      const r = await fetch('/api/track', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ref: active.ref, phone: active.phone }) });
-      if (r.status === 404) return;                      // not in the Sheet (yet): keep trying quietly
-      const j = await r.json();
-      if (j.ok) { setOrder(j.order); setSkew(Number(j.serverNow) - Date.now()); }
+      const j = await (await fetch('/api/orders/active', { cache: 'no-store' })).json();
+      if (!j.ok) return;
+      setSkew(Number(j.serverNow || Date.now()) - Date.now());
+      let dismissed = '';
+      try { dismissed = localStorage.getItem('mh_dismissed_order') || ''; } catch { /* ignore */ }
+      setOrder(j.order && j.order.ref !== dismissed ? (j.order as OrderView) : null);   // exactly what the shop set; hidden once the customer pressed Done
     } catch { /* keep what we have */ }
-  }, [active]);
+  }, [signedIn]);
 
-  /* poll the shop's Sheet: every 30 s (every 10 s while the sheet is open) and when the tab is shown again */
+  /* poll: every 30 s (10 s while the sheet is open) and when the tab is shown again; extra tries right after an order is placed */
   useEffect(() => {
-    if (!active) return;
+    if (!signedIn) return;
     load();
     const t = setInterval(load, open ? 10_000 : 30_000);
     const vis = () => { if (document.visibilityState === 'visible') load(); };
+    const placed = () => { load(); setTimeout(load, 2500); setTimeout(load, 7000); };
+    const openIt = () => { load(); setOpen(true); };
     document.addEventListener('visibilitychange', vis);
-    return () => { clearInterval(t); document.removeEventListener('visibilitychange', vis); };
-  }, [active, load, open]);
+    window.addEventListener('mh:order-placed', placed);
+    window.addEventListener('mh:open-tracker', openIt);
+    return () => { clearInterval(t); document.removeEventListener('visibilitychange', vis); window.removeEventListener('mh:order-placed', placed); window.removeEventListener('mh:open-tracker', openIt); };
+  }, [signedIn, load, open]);
 
   /* the clock that makes the countdown drop by itself */
   useEffect(() => {
@@ -71,22 +58,22 @@ export default function OrderTracker() {
     return () => document.removeEventListener('keydown', onKey);
   }, [open]);
 
-  if (!active) return null;
+  if (!signedIn || !order) return null;
 
-  const left = order ? minutesLeft(order.etaAt, now + skew) : null;
-  const finished = order ? isFinished(order.progress) : false;
-  const cancelled = order?.progress === 'Cancelled';
-  const isPickup = order?.type === 'Pickup';
-  const step = order ? stepIndex(order.progress) : 1;
+  const left = minutesLeft(order.etaAt, now + skew);
+  const finished = isFinished(order.progress);
+  const cancelled = order.progress === 'Cancelled';
+  const isPickup = order.type === 'Pickup';
+  const step = stepIndex(order.progress);
   const steps = isPickup ? ['Order placed', 'Preparing', 'Ready for pickup', 'Picked up'] : ['Order placed', 'Preparing', 'Out for delivery', 'Delivered'];
 
-  const pill = !order ? 'Track order' : cancelled ? 'Order cancelled' : finished ? (isPickup ? 'Picked up ✓' : 'Delivered ✓') : left == null ? 'Confirming time…' : left > 0 ? `${left} min` : 'Arriving soon';
+  const pill = cancelled ? 'Order cancelled' : finished ? (isPickup ? 'Picked up ✓' : 'Delivered ✓') : left == null ? 'Confirming time…' : left > 0 ? `${left} min` : 'Arriving soon';
   const big = left != null && left > 0 ? String(left) : null;
-  const frac = order?.etaMin && left != null ? Math.max(0, Math.min(1, left / order.etaMin)) : 1;
+  const frac = order.etaMin && left != null ? Math.max(0, Math.min(1, left / order.etaMin)) : 1;
   const C = 2 * Math.PI * 54;
-  const lines = (order?.items || '').split('\n').map((l) => l.trim()).filter(Boolean);
+  const lines = (order.items || '').split('\n').map((l) => l.trim()).filter(Boolean);
 
-  const done = () => { try { localStorage.removeItem(KEY); } catch { /* ignore */ } setOpen(false); setActive(null); setOrder(null); };
+  const done = () => { try { localStorage.setItem('mh_dismissed_order', order.ref); } catch { /* ignore */ } setOpen(false); setOrder(null); };
 
   return (
     <>
@@ -100,7 +87,7 @@ export default function OrderTracker() {
         <div className="ot-backdrop" onClick={() => setOpen(false)} />
         <div className="ot-panel">
           <div className="ot-head">
-            <div><small>YOUR ORDER</small><b>{active.ref}</b></div>
+            <div><small>YOUR ORDER</small><b>{order.ref}</b></div>
             <button type="button" className="ot-x" onClick={() => setOpen(false)} aria-label="Close">×</button>
           </div>
 
@@ -139,7 +126,7 @@ export default function OrderTracker() {
 
             <div className="ot-actions">
               <a href={`tel:+${SHOP.whatsapp}`} className="btn btn-sm ot-call">📞 Call us</a>
-              <a href={`https://wa.me/${SHOP.whatsapp}?text=${encodeURIComponent(`Hi Misal Hub! About my order ${active.ref}`)}`} target="_blank" rel="noopener noreferrer" className="btn btn-sm ot-wa">WhatsApp</a>
+              <a href={`https://wa.me/${SHOP.whatsapp}?text=${encodeURIComponent(`Hi Misal Hub! About my order ${order.ref}`)}`} target="_blank" rel="noopener noreferrer" className="btn btn-sm ot-wa">WhatsApp</a>
               {finished && <button type="button" className="btn btn-sm btn-gold" onClick={done}>Done</button>}
             </div>
           </div>

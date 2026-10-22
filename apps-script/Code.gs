@@ -11,8 +11,8 @@
  *   4. In Vercel (or .env.local) set  APPS_SCRIPT_URL = that URL   and   APPS_SCRIPT_SECRET = the SECRET from step 2.
  *   5. Run the function  selfTest  once from the editor (Run button) to check the Sheet and e-mail work.
  *
- * ORDER TRACKING: every paid order gets Progress = Preparing and an ETA (minutes) taken from Settings. The customer's phone shows a live
- *   countdown. To change it, just type a new number in the "ETA (min)" cell of that order (e.g. 55): the countdown restarts from 55 minutes
+ * ORDER TRACKING: every paid order gets Progress = Preparing and an ORANGE empty "ETA (min)" cell: type the minutes for that order (e.g. 40) and the
+ *   customer's phone shows a live countdown. (Optional: put a default in Settings to have it filled automatically.) To change it later, just type a new number in the "ETA (min)" cell of that order (e.g. 55): the countdown restarts from 55 minutes
  *   from that moment. Use the Progress dropdown (Preparing / Out for delivery / Ready for pickup / Delivered / Cancelled) and, if you like,
  *   "Message to customer" (e.g. "Heavy rain, a few minutes late").
  *
@@ -31,9 +31,11 @@
 var ORDERS = 'Orders';
 var FRANCHISE = 'Franchise Applications';
 var BULK = 'Bulk Orders';
+var CUSTOMERS = 'Customers';
 var ORDER_HEADERS = ['Created', 'Order ref', 'Status', 'Razorpay order id', 'Payment id', 'Paid at', 'Name', 'Phone', 'Email',
   'Type', 'Address', 'Map link', 'Distance (km)', 'Items', 'Subtotal', 'Delivery fee', 'Total', 'Notes', 'Promo', 'Discount', 'Source', 'Progress', 'ETA (min)', 'ETA set at', 'Message to customer'];
 var BULK_HEADERS = ['Received', 'Name', 'Phone', 'Email', 'Occasion', 'Date needed', 'Time needed', 'People', 'Order details', 'Special / Jain', 'Plates & cutlery', 'Budget', 'Type', 'Address', 'Notes', 'Status'];
+var CUSTOMER_HEADERS = ['Created', 'Email', 'Name', 'Phone', 'Last sign-in', 'Sign-in method'];
 var FRANCHISE_HEADERS = ['Received', 'Name', 'Phone', 'Email', 'City', 'Message'];
 
 function prop_(k) { return PropertiesService.getScriptProperties().getProperty(k) || ''; }
@@ -69,7 +71,84 @@ function onEdit(e) {
     if (sh.getName() !== ORDERS || e.range.getRow() < 2 || e.range.getColumn() !== 23) return;
     var n = Number(e.value);
     sh.getRange(e.range.getRow(), 24).setValue(e.value === undefined || e.value === '' || isNaN(n) ? '' : new Date());
+    if (e.value !== undefined && e.value !== '' && !isNaN(n)) e.range.setBackground(null).clearNote();      // time given: remove the orange
   } catch (err) { /* never block an edit */ }
+}
+
+/** Sign-in code e-mail (sent from the shop's own Gmail through this script). */
+function sendCode_(d) {
+  var email = String(d.email || '').trim();
+  var code = String(d.code || '');
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email) || !/^\d{6}$/.test(code)) return { ok: false, error: 'bad request' };
+  MailApp.sendEmail({
+    to: email, name: 'Misal Hub', subject: 'Your Misal Hub sign-in code: ' + code,
+    htmlBody: '<p>Your Misal Hub sign-in code is:</p><p style="font-size:32px;font-weight:bold;letter-spacing:6px">' + code + '</p>' +
+      '<p>It is valid for 10 minutes. If you did not ask for it, you can ignore this email.</p><p>Misal Hub &middot; +91 90041 67448</p>'
+  });
+  return { ok: true };
+}
+
+function customerRow_(sh, email) {
+  if (sh.getLastRow() < 2) return 0;
+  var hit = sh.getRange(2, 2, sh.getLastRow() - 1, 1).createTextFinder(String(email).toLowerCase()).matchEntireCell(true).matchCase(false).findNext();
+  return hit ? hit.getRow() : 0;
+}
+
+/** Called after every successful sign-in: creates the customer on first visit, notes the sign-in, returns the saved name + phone. */
+function customerLogin_(d) {
+  var sh = sheet_(CUSTOMERS, CUSTOMER_HEADERS);
+  var email = String(d.email || '').trim().toLowerCase();
+  if (!email) return { ok: false };
+  var r = customerRow_(sh, email);
+  if (!r) {
+    sh.appendRow([new Date(), cell_(email), cell_(d.name || ''), '', new Date(), cell_(d.method || '')]);
+    return { ok: true, name: String(d.name || ''), phone: '' };
+  }
+  var row = sh.getRange(r, 1, 1, 6).getValues()[0];
+  if (!row[2] && d.name) sh.getRange(r, 3).setValue(cell_(d.name));
+  sh.getRange(r, 5).setValue(new Date());
+  return { ok: true, name: String(row[2] || d.name || ''), phone: String(row[3] || '').replace(/\D/g, '').slice(-10) };
+}
+
+/** First sign-in: name + mobile number saved (both required by the website). */
+function customerSave_(d) {
+  var sh = sheet_(CUSTOMERS, CUSTOMER_HEADERS);
+  var email = String(d.email || '').trim().toLowerCase();
+  var phone = String(d.phone || '').replace(/\D/g, '').slice(-10);
+  if (!email || phone.length !== 10) return { ok: false };
+  var r = customerRow_(sh, email);
+  if (!r) { sh.appendRow([new Date(), cell_(email), cell_(d.name), "'" + phone, new Date(), '']); return { ok: true }; }
+  sh.getRange(r, 3).setValue(cell_(d.name));
+  sh.getRange(r, 4).setNumberFormat('@').setValue(phone);
+  return { ok: true };
+}
+
+/** The shape the tracker needs, from one Orders row. */
+function orderView_(r) {
+  var mins = Number(r[22]), at = r[23];
+  var etaAt = (mins > 0 && at instanceof Date) ? at.getTime() + mins * 60000 : null;
+  return { ok: true, ref: String(r[1]), progress: String(r[21] || 'Preparing'), items: String(r[13] || ''), total: r[16], type: String(r[9] || ''), address: String(r[10] || ''),
+    etaAt: etaAt, etaMin: mins > 0 ? mins : null, note: String(r[24] || ''), serverNow: new Date().getTime() };
+}
+
+/** The signed-in customer's latest PAID order: shown while it is active (up to 12 hours), and for 3 hours after it was delivered / cancelled. */
+function activeOrder_(q) {
+  var email = String(q.email || '').trim().toLowerCase();
+  var sh = sheet_(ORDERS, ORDER_HEADERS);
+  var n = sh.getLastRow() - 1;
+  if (!email || n < 1) return { ok: true };
+  var rows = sh.getRange(2, 1, n, ORDER_HEADERS.length).getValues();
+  var now = new Date().getTime();
+  for (var i = rows.length - 1; i >= 0; i--) {
+    var r = rows[i];
+    if (String(r[8]).trim().toLowerCase() !== email || String(r[2]).indexOf('Paid') !== 0) continue;
+    if (!(r[0] instanceof Date)) continue;
+    var prog = String(r[21] || 'Preparing');
+    var finished = prog === 'Delivered' || prog === 'Cancelled';
+    if (now - r[0].getTime() > (finished ? 3 : 12) * 60 * 60 * 1000) return { ok: true };   // too old: nothing to show
+    return orderView_(r);                                                                   // the latest paid order decides
+  }
+  return { ok: true };
 }
 
 /** Customer tracking: find the PAID order for this reference + phone and return what the tracker needs. */
@@ -100,8 +179,8 @@ function settingsSheet_() {
       ['Delivery', 'YES', 'YES = customers can order delivery. NO = delivery paused (website blocks it).'],
       ['Pickup', 'YES', 'YES = customers can order pickup. NO = pickup paused.'],
       ['Message', '', 'Optional text shown to customers when something is paused (e.g. "Closed today, back tomorrow 8 AM").'],
-      ['Default delivery time (min)', 40, 'Every new paid delivery order starts with this ETA. Change it per order in the Orders tab.'],
-      ['Default pickup time (min)', 20, 'Every new paid pickup order starts with this ETA.']
+      ['Default delivery time (min)', '', 'OPTIONAL. Leave EMPTY to set the time yourself for every order (recommended). A number here is applied automatically to every new paid delivery order.'],
+      ['Default pickup time (min)', '', 'OPTIONAL. Leave EMPTY to set the time yourself. A number here is applied automatically to every new paid pickup order.']
     ]);
     sh.getRange(1, 1, 1, 3).setFontWeight('bold').setBackground('#FFE0B8');
     var rule = SpreadsheetApp.newDataValidation().requireValueInList(['YES', 'NO'], true).setAllowInvalid(false).build();
@@ -109,8 +188,8 @@ function settingsSheet_() {
     sh.setColumnWidth(1, 190); sh.setColumnWidth(2, 110); sh.setColumnWidth(3, 520);
   } else if (sh.getLastRow() < 6) {
     sh.getRange(5, 1, 2, 3).setValues([
-      ['Default delivery time (min)', 40, 'Every new paid delivery order starts with this ETA. Change it per order in the Orders tab.'],
-      ['Default pickup time (min)', 20, 'Every new paid pickup order starts with this ETA.']
+      ['Default delivery time (min)', '', 'OPTIONAL. Leave EMPTY to set the time yourself for every order (recommended). A number here is applied automatically to every new paid delivery order.'],
+      ['Default pickup time (min)', '', 'OPTIONAL. Leave EMPTY to set the time yourself. A number here is applied automatically to every new paid pickup order.']
     ]);
     sh.setColumnWidth(1, 190);
   }
@@ -123,6 +202,7 @@ function doGet(e) {
     var q = (e && e.parameter) || {};
     if (!prop_('SECRET') || q.secret !== prop_('SECRET')) return out_({ ok: false, error: 'unauthorized' });
     if (q.action === 'track') return out_(track_(q));
+    if (q.action === 'active_order') return out_(activeOrder_(q));
     if (q.action !== 'status') return out_({ ok: false, error: 'unknown action' });
     var v = settingsSheet_().getRange('B2:B4').getValues();
     var yn = function (x) { return String(x).toUpperCase().trim() === 'NO' ? 'NO' : 'YES'; };
@@ -140,9 +220,12 @@ function doPost(e) {
     if (!prop_('SECRET') || data.secret !== prop_('SECRET')) return out_({ ok: false, error: 'unauthorized' });
     if (data.action === 'order_created') return out_(orderCreated_(data));
     if (data.action === 'order_paid') return out_(orderPaid_(data));
-    if (data.action === 'promo_check') return out_({ ok: true, used: promoUsed_(data.phone, data.code) });
+    if (data.action === 'promo_check') return out_({ ok: true, used: promoUsed_(data.phone, data.code, data.email) });
     if (data.action === 'franchise') return out_(franchise_(data));
     if (data.action === 'bulk') return out_(bulk_(data));
+    if (data.action === 'send_code') return out_(sendCode_(data));
+    if (data.action === 'customer_login') return out_(customerLogin_(data));
+    if (data.action === 'customer_save') return out_(customerSave_(data));
     return out_({ ok: false, error: 'unknown action' });
   } catch (err) {
     return out_({ ok: false, error: String(err) });
@@ -158,18 +241,21 @@ function itemsText_(items) {
 }
 
 /** Has this phone number already used this promo code? Counts paid orders and unpaid ones started in the last 30 minutes. */
-function promoUsed_(phone, code) {
-  if (!code || !phone) return false;
+function promoUsed_(phone, code, email) {
+  if (!code || (!phone && !email)) return false;
   var sh = sheet_(ORDERS, ORDER_HEADERS);
   var n = sh.getLastRow() - 1;
   if (n < 1) return false;
-  var want = String(phone).replace(/\D/g, '').slice(-10);
+  var want = String(phone || '').replace(/\D/g, '').slice(-10);
+  var wantMail = String(email || '').trim().toLowerCase();
   var rows = sh.getRange(2, 1, n, 19).getValues();      // columns A..S (Created ... Promo)
   var now = new Date().getTime();
   for (var i = 0; i < rows.length; i++) {
     var r = rows[i];
     if (String(r[18]).toUpperCase() !== String(code).toUpperCase()) continue;
-    if (String(r[7]).replace(/\D/g, '').slice(-10) !== want) continue;
+    var samePhone = want && String(r[7]).replace(/\D/g, '').slice(-10) === want;
+    var sameMail = wantMail && String(r[8]).trim().toLowerCase() === wantMail;
+    if (!samePhone && !sameMail) continue;
     var status = String(r[2]);
     if (status.indexOf('Paid') === 0) return true;
     if (status === 'Awaiting payment' && r[0] instanceof Date && now - r[0].getTime() < 30 * 60 * 1000) return true;
@@ -180,7 +266,7 @@ function promoUsed_(phone, code) {
 function orderCreated_(d) {
   var sh = sheet_(ORDERS, ORDER_HEADERS);
   var c = d.customer || {};
-  if (d.promo && promoUsed_(c.phone, d.promo)) return { ok: false, error: 'promo_used' };    // checked again here, inside the lock, so two quick orders cannot both get the offer
+  if (d.promo && promoUsed_(c.phone, d.promo, c.email)) return { ok: false, error: 'promo_used' };    // checked again here, inside the lock, so two quick orders cannot both get the offer
   sh.appendRow([new Date(), cell_(d.ref), 'Awaiting payment', cell_(d.razorpayOrderId), '', '', cell_(c.name), cell_(c.phone), cell_(c.email),
     cell_(d.type), cell_(d.address), cell_(d.mapLink), d.distanceKm || '', cell_(itemsText_(d.items)), d.subtotal, d.deliveryFee, d.total, cell_(d.notes), cell_(d.promo || ''), d.discount || '', cell_(d.source || '')]);
   return { ok: true };
@@ -208,7 +294,9 @@ function orderPaid_(d) {
   prog.setValue('Preparing');
   var st = settingsSheet_().getRange('B5:B6').getValues();
   var defMin = Number(String(row[9]) === 'Pickup' ? st[1][0] : st[0][0]);
-  if (defMin > 0 && !sh.getRange(r, 23).getValue()) { sh.getRange(r, 23).setValue(defMin); sh.getRange(r, 24).setValue(new Date()); }
+  var etaCell = sh.getRange(r, 23);
+  if (defMin > 0 && !etaCell.getValue()) { etaCell.setValue(defMin); sh.getRange(r, 24).setValue(new Date()); }
+  else if (!etaCell.getValue()) { etaCell.setBackground('#FFC266').setNote('Type the minutes for THIS order (e.g. 40). The customer sees a live countdown.'); }   // orange = needs a time
 
   var o = { ref: row[1], name: row[6], phone: row[7], email: row[8], type: row[9], address: row[10], map: row[11], km: row[12], items: row[13], sub: row[14], fee: row[15], total: row[16], notes: row[17], promo: row[18], discount: row[19] };
   var html = '<h2>New PAID order ' + esc_(o.ref) + '</h2>' +
@@ -218,7 +306,7 @@ function orderPaid_(d) {
     (o.type === 'Delivery' ? '<p>' + esc_(o.address) + '<br>' + (o.km ? esc_(o.km) + ' km &middot; ' : '') + '<a href="' + esc_(o.map) + '">Open in Google Maps</a></p>' : '<p>Pickup from shop.</p>') +
     (o.notes ? '<p><i>Notes: ' + esc_(o.notes) + '</i></p>' : '') +
     '<p style="color:#666">Razorpay payment id: ' + esc_(d.paymentId) + '</p>' +
-    '<p style="color:#666">Customer sees a live countdown. To change the time or progress, edit "ETA (min)" / "Progress" for this order in the Orders tab.</p>';
+    '<p style="color:#666">Customer sees a live countdown. SET THE TIME: type the minutes in the orange "ETA (min)" cell of this order in the Orders tab (and use "Progress" to update it later).</p>';
   MailApp.sendEmail({ to: shopEmail_(), subject: 'New paid order ' + o.ref + ' - Rs ' + o.total + ' (' + o.type + ')', htmlBody: html, name: 'Misal Hub website' });
 
   if (o.email) {
@@ -275,7 +363,7 @@ function bulk_(d) {
 
 /** Run once from the editor: creates the sheets and sends a test e-mail to NOTIFY_EMAIL. */
 function selfTest() {
-  sheet_(ORDERS, ORDER_HEADERS); sheet_(FRANCHISE, FRANCHISE_HEADERS); sheet_(BULK, BULK_HEADERS); settingsSheet_();
+  sheet_(ORDERS, ORDER_HEADERS); sheet_(FRANCHISE, FRANCHISE_HEADERS); sheet_(BULK, BULK_HEADERS); sheet_(CUSTOMERS, CUSTOMER_HEADERS); settingsSheet_();
   MailApp.sendEmail(shopEmail_(), 'Misal Hub website: test e-mail', 'If you can read this, order and franchise e-mails will reach you.');
-  Logger.log('OK - sheets (Orders, Franchise Applications, Bulk Orders, Settings) created and test e-mail sent to ' + shopEmail_());
+  Logger.log('OK - sheets (Orders, Franchise Applications, Bulk Orders, Customers, Settings) created and test e-mail sent to ' + shopEmail_());
 }

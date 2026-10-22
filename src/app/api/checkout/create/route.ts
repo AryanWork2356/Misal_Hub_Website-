@@ -4,6 +4,7 @@ import { env, paymentsConfigured } from '@/lib/server/env';
 import { cleanPhone, cleanText, clientIp, isEmail, json, rateLimit } from '@/lib/server/guard';
 import { createRazorpayOrder } from '@/lib/server/razorpay';
 import { callSheet, notifySheet } from '@/lib/server/sheet';
+import { getSession } from '@/lib/server/session';
 import { normCode, promoDiscount } from '@/lib/promo';
 import { getOrderStatus } from '@/lib/server/status';
 
@@ -23,6 +24,9 @@ export async function POST(req: Request) {
   const demo = env.testMode() && !paymentsConfigured();
   if (!paymentsConfigured() && !demo) return json({ ok: false, code: 'not_configured', error: 'Online payment is being set up. Please call us on +91 90041 67448 to order.' }, 503);
 
+  const session = await getSession();
+  if (!session) return json({ ok: false, code: 'signin', error: 'Please sign in to place your order.' }, 401);
+
   let b: {
     items?: unknown; promo?: unknown; src?: unknown; type?: unknown; address?: unknown; lat?: unknown; lng?: unknown; notes?: unknown;
     customer?: { name?: unknown; phone?: unknown; email?: unknown };
@@ -41,10 +45,9 @@ export async function POST(req: Request) {
 
   const name = cleanText(b.customer?.name, 80);
   const phone = cleanPhone(b.customer?.phone);
-  const email = cleanText(b.customer?.email, 120);
+  const email = session.email;                       // the verified account e-mail (never typed)
   if (name.length < 2) return json({ ok: false, error: 'Please enter your name.' }, 400);
   if (!phone) return json({ ok: false, error: 'Please enter a valid 10-digit mobile number.' }, 400);
-  if (email && !isEmail(email)) return json({ ok: false, error: 'That email address does not look right.' }, 400);
 
   const type = b.type === 'Pickup' ? 'Pickup' : 'Delivery';
   const notes = cleanText(b.notes, 300);
@@ -73,7 +76,7 @@ export async function POST(req: Request) {
   if (promoCode) {
     const d = promoDiscount(promoCode, priced.subtotal);
     if (!d) return json({ ok: false, error: 'That offer code is not valid.' }, 400);
-    const chk = await callSheet({ action: 'promo_check', phone, code: promoCode });
+    const chk = await callSheet({ action: 'promo_check', phone, email, code: promoCode });
     if (chk?.used) return json({ ok: false, code: 'promo_used', error: 'Welcome back! The first-order offer was already used with this number, so it has been taken off. Your total is updated, tap Pay to continue.' }, 409);
     discount = d.discount;
   }

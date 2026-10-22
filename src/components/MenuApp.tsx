@@ -8,6 +8,8 @@ import { DELIVERY, SHOP, deliveryQuote, hasModePrice, isOpenNow, rupee, unitPric
 import { useOrderStatus } from '@/lib/useOrderStatus';
 import { normCode, promoDiscount, PROMOS } from '@/lib/promo';
 import { validMobile } from '@/lib/phone';
+import SignInCard from './SignInCard';
+import { isComplete, refreshAccount, signOut, useAccount } from '@/lib/useAccount';
 
 type Line = { key: string; it: Item; m: Mode; qty: number; price: number };
 type Step = 'cart' | 'details' | 'success';
@@ -83,6 +85,9 @@ export default function MenuApp() {
   const cart = useMemo(() => parseCart(cartJson), [cartJson]);
   const open = useSyncExternalStore(subscribeMinute, () => isOpenNow(), () => true);
   const ost = useOrderStatus();   // owner's manual delivery / pickup switch
+  const acct = useAccount();      // who is signed in (sign-in is required to order)
+  const user = acct.user;
+  const ready = isComplete(user);  // signed in AND name + mobile saved
 
   const [drawer, setDrawer] = useState(false);
   const [step, setStep] = useState<Step>('cart');
@@ -147,7 +152,7 @@ export default function MenuApp() {
   const discount = pd?.discount ?? 0;
   const total = sum - discount + fee;
   const typeOn = type === 'Delivery' ? ost.delivery : ost.pickup;
-  const canPay = open && typeOn && count > 0 && !paying && (type === 'Pickup' || (!!dq && dq.deliverable));
+  const canPay = ready && open && typeOn && count > 0 && !paying && (type === 'Pickup' || (!!dq && dq.deliverable));
 
   /* what is closed right now (shop hours, or the owner's manual switch) — shown BEFORE the customer fills anything in */
   const allPaused = !ost.delivery && !ost.pickup;
@@ -219,6 +224,19 @@ export default function MenuApp() {
       if (saved.type === 'Pickup') setType('Pickup');
     } catch { /* ignore */ }
   }, []);
+
+  /* ---------- the account fills the form: name + phone, and the e-mail is always the account's ---------- */
+  useEffect(() => {
+    const f = formRef.current;
+    if (!f || !isComplete(user)) return;
+    const set = (k: string, v: string, lock = false) => {
+      const el = f.elements.namedItem(k) as HTMLInputElement | null;
+      if (!el) return;
+      if (lock || !el.value.trim()) el.value = v;
+      if (lock) el.readOnly = true;
+    };
+    set('name', user.name); set('phone', user.phone);
+  }, [user, step]);
 
   /* ---------- drawer: lock scroll, focus, Esc ---------- */
   useEffect(() => {
@@ -320,13 +338,13 @@ export default function MenuApp() {
   /** keep the order on this device so the floating tracker can follow it */
   function rememberOrder(ref: string, phone: string) {
     try { localStorage.setItem('mh_active_order', JSON.stringify({ ref, phone, at: Date.now() })); } catch { /* ignore */ }
-    window.dispatchEvent(new Event('mh:order-placed'));
+    window.dispatchEvent(new Event('mh:order-placed'));   // the tracker asks the server for this account's active order
   }
 
   /* ---------- pay ---------- */
   async function pay() {
     setError('');
-    const name = field('name'), phone = field('phone'), email = field('email'), notes = field('notes'), address = field('address');
+    const name = field('name'), phone = field('phone'), email = user?.email ?? '', notes = field('notes'), address = field('address');
     if (name.length < 2) return setError('Please enter your name.');
     if (!validMobile(phone)) return setError('Please enter a real 10-digit mobile number — we call this number about your order.');
     if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) return setError('That email address does not look right.');
@@ -347,6 +365,7 @@ export default function MenuApp() {
       });
       const j = await res.json();
       if (!j.ok) {
+        if (j.code === 'signin') refreshAccount();
         if (j.code === 'promo_used') retirePromo();    // the offer was already used with this number: drop it, the customer can still order
         setError(j.error || 'Could not start payment.'); setPaying(false); return;
       }
@@ -624,14 +643,20 @@ export default function MenuApp() {
           </div>
 
           {/* ---- step 2: details ---- */}
-          <form id="checkoutForm" ref={formRef} className="order-form" hidden={step !== 'details'} noValidate onSubmit={(e) => { e.preventDefault(); pay(); }}>
+          {/* sign-in comes first: orders, tracking and offers belong to the customer's account */}
+          <div className="signin-gate" hidden={step !== 'details' || ready}>
             <button type="button" className="cd-back" onClick={() => setStep('cart')}>← Back to your order</button>
             {notice}
+            <SignInCard />
+          </div>
+          <form id="checkoutForm" ref={formRef} className="order-form" hidden={step !== 'details' || !ready} noValidate onSubmit={(e) => { e.preventDefault(); pay(); }}>
+            <button type="button" className="cd-back" onClick={() => setStep('cart')}>← Back to your order</button>
+            {notice}
+            {user && <p className="acct-strip">👤 Signed in as <b>{user.email}</b> · <button type="button" onClick={signOut}>Sign out</button></p>}
 
             <h3>Contact</h3>
             <label>Name<input name="name" type="text" autoComplete="name" required placeholder="Your name" /></label>
             <label>Phone number<input name="phone" type="tel" inputMode="numeric" autoComplete="tel" required placeholder="10-digit mobile number" /></label>
-            <label><span>Email <em className="opt">for your receipt · optional</em></span><input name="email" type="email" autoComplete="email" placeholder="you@example.com" /></label>
 
             {true && (
               <div className="offers">
@@ -739,7 +764,7 @@ export default function MenuApp() {
                 </div>
                 {error && <p className="form-error" role="alert">{error}</p>}
                 <button type="submit" form="checkoutForm" className="btn btn-gold full-w btn-pay" disabled={!canPay}>
-                  {paying ? 'Opening secure payment…' : closedLabel ? closedLabel : `Pay ${rupee(total)} securely`}
+                  {paying ? 'Opening secure payment…' : !ready ? 'Sign in to continue' : closedLabel ? closedLabel : `Pay ${rupee(total)} securely`}
                 </button>
                 <p className="secure">
                   <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2" /><path d="M8 11V8a4 4 0 0 1 8 0v3" /></svg>

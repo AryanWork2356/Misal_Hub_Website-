@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { OpenLive, useIsOpen } from './OpenLive';
 import { useOrderStatus } from '@/lib/useOrderStatus';
+import AccountMenu from './AccountMenu';
 import { getLenis } from '@/lib/lenis';
 import { cartServerSnapshot, cartSnapshot, parseCart, subscribeCart } from '@/lib/cart';
 import { SHOP } from '@/lib/pricing';
@@ -112,6 +113,7 @@ export default function Navbar({ active, home = false, applyAnchor = false }: { 
               <Link href="/menu" className={`deliver-btn ${state}`} title={accepting ? undefined : (isOpen ? `Orders are paused right now${ost.message ? ' — ' + ost.message : ''}` : 'We are closed right now — open 8 AM to 8 PM')}><i /> Deliver Now <span aria-hidden="true">→</span></Link>
             )}
           </li>
+          <li className="nav-account"><AccountMenu /></li>
         </ul>
 
         {/* phones only (hidden by CSS on desktop) */}
@@ -124,6 +126,7 @@ export default function Navbar({ active, home = false, applyAnchor = false }: { 
         ) : (
           <Link href="/menu" className={`deliver-pill ${state}`} onClick={close}><i /> Deliver Now</Link>
         )}
+        <AccountMenu className="acct-phone" />
         <button
           type="button"
           className={`hamburger${open ? ' is-open' : ''}`}
