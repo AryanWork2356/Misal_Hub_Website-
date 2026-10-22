@@ -1075,3 +1075,8 @@ body.order-page .ot-pill { bottom: 96px; }
 .mo-bill p small { display: block; font: 700 .62rem 'Poppins', sans-serif; letter-spacing: 1.4px; text-transform: uppercase; color: #FFB067 !important; }
 .mo-help { opacity: .85; } .mo-help a { color: #FFB067; text-decoration: underline; }
 @media (max-width: 560px) { .mo-card { padding: 16px; } }
+
+/* profile menu: "My orders" link looks like the other items */
+.acct-pop .acct-link { display: flex; align-items: baseline; gap: 8px; width: 100%; padding: 11px 12px; border-radius: 10px; text-decoration: none; font: 600 .86rem 'Poppins', sans-serif; color: #FFE0B8 !important; }
+.acct-pop .acct-link:hover { background: rgba(255,138,31,.15); }
+.acct-pop .acct-link small { font-size: .68rem; font-weight: 500; opacity: .65; color: #FFB067 !important; }

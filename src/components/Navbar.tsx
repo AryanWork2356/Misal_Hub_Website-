@@ -4,7 +4,6 @@ import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { OpenLive, useIsOpen } from './OpenLive';
 import { useOrderStatus } from '@/lib/useOrderStatus';
 import AccountMenu from './AccountMenu';
-import { useAccount } from '@/lib/useAccount';
 import { getLenis } from '@/lib/lenis';
 import { cartServerSnapshot, cartSnapshot, parseCart, subscribeCart } from '@/lib/cart';
 import { SHOP } from '@/lib/pricing';
@@ -26,7 +25,6 @@ export default function Navbar({ active, home = false, applyAnchor = false }: { 
   const navRef = useRef<HTMLElement>(null);
   const isOpen = useIsOpen();
   const ost = useOrderStatus();                      // owner's manual switch
-  const signedIn = !!useAccount().user;               // "My Orders" appears once the customer is signed in
   const accepting = isOpen && (ost.delivery || ost.pickup);
   const state = accepting ? 's-open' : 's-closed';   // green glow while taking orders, red while not
 
@@ -84,7 +82,6 @@ export default function Navbar({ active, home = false, applyAnchor = false }: { 
     { node: <Link href="/about" className={cls('about')} onClick={close}>About Us</Link> },
     { node: <Link href="/franchise" className={cls('franchise')} onClick={close}>Franchise</Link> },
     { node: contactLink(undefined, 'Contact') },
-    ...(signedIn ? [{ node: <Link href="/my-orders" className={cls('orders')} onClick={close}>My Orders</Link> }] : []),
   ];
 
   return (
@@ -104,7 +101,6 @@ export default function Navbar({ active, home = false, applyAnchor = false }: { 
           <li><Link href="/menu" className={cls('menu')}>Menu &amp; Order</Link></li>
           <li>{contactLink()}</li>
           <li>{franchiseCta('btn-franchise')}</li>
-          {signedIn && <li><Link href="/my-orders" className={`nav-orders${active === 'orders' ? ' active' : ''}`}>🧾 My Orders</Link></li>}
           {/* far-right call to action (laptops/desktops). On the Menu page it becomes the cart button once there is something in it. */}
           <li className="nav-deliver">
             {onMenuPage ? (

@@ -1,4 +1,5 @@
 'use client';
+import Link from 'next/link';
 import { useEffect, useRef, useState } from 'react';
 import SignInCard from './SignInCard';
 import { isComplete, signOut, useAccount } from '@/lib/useAccount';
@@ -60,6 +61,7 @@ export default function AccountMenu({ className = '' }: { className?: string }) 
         <div className="acct-pop" role="menu">
           <div className="acct-who"><b>{user.name || 'Welcome'}</b><small>{user.email}</small></div>
           <button type="button" role="menuitem" onClick={() => { setMenu(false); window.dispatchEvent(new Event('mh:open-tracker')); }}>🛵 My current order</button>
+          <Link href="/my-orders" role="menuitem" className="acct-link" onClick={() => setMenu(false)}>🧾 My orders <small>history &amp; bills</small></Link>
           <button type="button" role="menuitem" className="out" onClick={() => { setMenu(false); signOut(); }}>Sign out</button>
         </div>
       )}
