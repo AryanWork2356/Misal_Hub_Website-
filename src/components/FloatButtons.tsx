@@ -7,7 +7,6 @@ const WA = `https://wa.me/${SHOP.whatsapp}`;
 const link = (text: string) => `${WA}?text=${encodeURIComponent(text)}`;
 
 const QUICK = [
-  { icon: '🍛', label: 'Place an order', text: 'Hi Misal Hub! I would like to place an order.' },
   { icon: '🎉', label: 'Bulk / party order', text: 'Hi Misal Hub! I want to enquire about a bulk / party order.' },
   { icon: '🤝', label: 'Franchise enquiry', text: 'Hi Misal Hub! I am interested in a Misal Hub franchise. Please share the details.' },
   { icon: '📍', label: 'Location & timings', text: 'Hi Misal Hub! Could you share your location and timings?' },
