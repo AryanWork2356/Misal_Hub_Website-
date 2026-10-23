@@ -112,6 +112,11 @@ export async function POST(req: Request) {
     distanceKm, items: priced.lines, subtotal: priced.subtotal, deliveryFee: fee, total, notes,
   });
   if (created?.error === 'promo_used') return json({ ok: false, code: 'promo_used', error: 'Welcome back! The first-order offer was already used with this number, so it has been taken off. Your total is updated, tap Pay to continue.' }, 409);
+  // never open the payment popup for an order we could not record (the customer's items and address would be lost)
+  if (!created?.ok) {
+    console.error('[checkout] order could not be recorded in the Sheet', ref);
+    return json({ ok: false, error: 'We could not record your order just now, and you have not been charged. Please try again in a moment.' }, 502);
+  }
 
   return json({
     ok: true, ref,

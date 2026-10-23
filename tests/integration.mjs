@@ -55,6 +55,7 @@ const script = await mk(async (req, res) => {
   if (body.action === 'customer_login') { const c = customers.get(body.email) || { name: body.name || '', phone: '' }; customers.set(body.email, c); return res.end(JSON.stringify({ ok: true, name: c.name, phone: c.phone })); }
   if (body.action === 'customer_save') { customers.set(body.email, { name: body.name, phone: body.phone }); return res.end('{"ok":true}'); }
   if (body.action === 'promo_check') return res.end(JSON.stringify({ ok: true, used: promoUsed.has(`${body.phone}|${body.code}`) || promoUsed.has(`${body.email}|${body.code}`) }));
+  if (body.action === 'order_created' && body.customer?.name === 'Sheet Down') { res.writeHead(200, { 'Content-Type': 'application/json' }); return res.end('{"ok":false,"error":"boom"}'); }   // the Sheet refuses to record this order
   if (body.action === 'order_created' && body.promo) {
     const k = `${body.customer.phone}|${body.promo}`, k2 = `${body.customer.email}|${body.promo}`;
     if (promoUsed.has(k) || promoUsed.has(k2)) return res.end('{"ok":false,"error":"promo_used"}');
@@ -380,6 +381,10 @@ try {
   ok('ordering an out-of-stock dish is refused by the server (409 soldout), naming it', r.status === 409 && r.json.code === 'soldout' && /Chaas/.test(r.json.error) && /out of stock/i.test(r.json.error) && r.json.ids?.[0] === 'chaas', r.json.error);
   r = await post(3206, '/api/checkout/create', { items: [{ id: 'misal-pav', mode: 'regular', qty: 1 }], customer, type: 'Delivery' });
   ok('in-stock dishes are not affected by the check (fails later, on the address, not on stock)', r.json.code !== 'soldout');
+
+  /* ----- a paid order must never start if the Sheet could not record it ----- */
+  r = await post(3205, '/api/checkout/create', { items: [{ id: 'misal-pav', mode: 'regular', qty: 1 }], customer: { ...customer, name: 'Sheet Down' }, type: 'Pickup' });
+  ok('order the Sheet could not record: refused with 502, no payment popup data, customer told they were not charged', r.status === 502 && !r.json.razorpay && /not been charged/i.test(r.json.error || ''), JSON.stringify(r.json).slice(0, 160));
 
   /* ----- rate limiting ----- */
   let limited = 0;

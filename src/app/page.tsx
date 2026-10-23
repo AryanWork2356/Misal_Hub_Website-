@@ -123,12 +123,12 @@ export default async function HomePage() {
           <div className="ob-copy">
             <div className="pill-tag">Order Online</div>
             <h2 className="section-title">Our entire menu, <span className="gold">delivered</span></h2>
-            <p>Browse every dish we serve, add to your order and send it to our kitchen in a minute. Regular and Jain menus, straight from Mira Road East.</p>
+            <p>Browse every dish we serve, add it to your order and pay online. We cook it fresh and deliver it hot to your door, or keep it ready for pickup. Regular and Jain menus, straight from Mira Road East.</p>
             <Link href="/menu" className="btn btn-gold magnetic">Start Your Order</Link>
             <div className="ob-points">
               <div><b>01</b><span>Pick from the full menu — regular or Jain</span></div>
               <div><b>02</b><span>Enter your name, phone and address</span></div>
-              <div><b>03</b><span>Send the order to us on WhatsApp and we confirm</span></div>
+              <div><b>03</b><span>Pay online and track your order live</span></div>
             </div>
           </div>
           <div className="ob-chips" id="orderChips">

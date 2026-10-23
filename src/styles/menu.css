@@ -2213,6 +2213,39 @@ html.lenis, html.lenis body { height: auto; }
 .pg-menu .fr2-invest-note b { color: #FFB067; }
 @media (max-width: 980px) { .pg-menu .fr2-invest { grid-template-columns: 1fr; } }
 
+/* ---- phone polish (audit): header never squeezes, coupon strip, tap targets, 404 ---- */
+.pg-menu .hamburger, .pg-menu .acct-btn { flex-shrink: 0; }
+@media (max-width: 360px) {
+  .pg-menu .nav-inner { gap: 6px; padding: 0 10px; }
+  .pg-menu .nav-logo img { height: 32px; }
+  .pg-menu .deliver-pill { padding: 9px 11px 9px 10px; font-size: .68rem; gap: 6px; letter-spacing: .2px; }
+  .pg-menu .hamburger, .pg-menu .acct-btn { width: 40px; height: 40px; }
+}
+@media (max-width: 560px) {
+  .pg-menu .first-offer { display: flex; flex-wrap: wrap; justify-content: center; text-align: center; gap: 4px 6px; padding: 10px 14px; border-radius: 18px; }
+}
+@media (max-width: 768px) {
+  .pg-menu .footer-col a, .pg-menu .footer-legal a { display: inline-block; padding: 7px 0; }
+  .pg-menu .footer-legal { line-height: 1.4; }
+  .pg-menu .wa-x { width: 38px; height: 38px; }
+  .pg-menu .fr2-seal { width: 150px; height: 150px; }
+  .pg-menu .fr2-seal span { font-size: .64rem; }
+  .pg-menu .fr2-seal small { font-size: .62rem; }
+}
+.pg-menu .nf-hero { text-align: center; padding: 90px 0 100px; }
+.pg-menu .nf-wrap { display: grid; justify-items: center; gap: 6px; }
+.pg-menu .nf-code { font: 800 clamp(4.5rem, 16vw, 8rem)/1 'Playfair Display', serif; background: linear-gradient(100deg, #FF8A1F, #FFC48A, #FF8A1F); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.pg-menu .nf-actions { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 22px; margin-top: 26px; }
+.pg-menu .nf-link { font: 700 .95rem 'Poppins', sans-serif; color: #FFB067 !important; text-decoration: none; border-bottom: 2px solid rgba(255,176,103,.4); padding: 10px 2px; }
+
+/* notch / home-indicator safe areas for the floating buttons (viewport-fit=cover) */
+@media (max-width: 768px) {
+  .pg-menu .wa-widget { right: calc(14px + env(safe-area-inset-right)); bottom: calc(16px + env(safe-area-inset-bottom)); }
+  .pg-menu .scroll-top { right: calc(20px + env(safe-area-inset-right)); bottom: calc(74px + env(safe-area-inset-bottom)); }
+  .pg-menu.order-page .wa-widget { bottom: calc(96px + env(safe-area-inset-bottom)) !important; }
+  .pg-menu.order-page .scroll-top { bottom: calc(152px + env(safe-area-inset-bottom)) !important; }
+}
+
 /* ============================================================
    MISAL HUB — MENU & ORDER PAGE
    Brown surfaces, orange text.
@@ -2334,7 +2367,10 @@ html.lenis, html.lenis body { height: auto; }
   .pg-menu .item-foot { flex-wrap: wrap; }
   .pg-menu .cart-fab .btn { padding: 13px 20px; gap: 10px; font-size: .8rem; }
 }
-@media (max-width: 380px) { .pg-menu .item-grid { grid-template-columns: 1fr; } }
+/* two columns all the way down to small phones (360 / 375 were falling into one giant column); equal-height rows */
+@media (max-width: 640px) { .pg-menu .item-grid { align-items: stretch; } }
+@media (max-width: 380px) { .pg-menu .item-grid { gap: 10px; } .pg-menu .item-body { padding: 10px 10px 12px; } .pg-menu .item-body h3 { font-size: .9rem; } .pg-menu .price { font-size: .98rem; } .pg-menu .add { padding: 7px 14px; } }
+@media (max-width: 300px) { .pg-menu .item-grid { grid-template-columns: 1fr; } }
 
 /* ---------- checkout (step 2), delivery, add-ons, success ---------- */
 .pg-menu .om-delivery-note { margin-top: 14px; font-size: .84rem; max-width: 640px; }

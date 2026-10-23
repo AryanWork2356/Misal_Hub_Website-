@@ -2212,3 +2212,36 @@ html.lenis, html.lenis body { height: auto; }
 .pg-home .fr2-invest-note { margin: 28px auto 0; max-width: 720px; text-align: center; font-size: .95rem; line-height: 1.8; opacity: .92; }
 .pg-home .fr2-invest-note b { color: #FFB067; }
 @media (max-width: 980px) { .pg-home .fr2-invest { grid-template-columns: 1fr; } }
+
+/* ---- phone polish (audit): header never squeezes, coupon strip, tap targets, 404 ---- */
+.pg-home .hamburger, .pg-home .acct-btn { flex-shrink: 0; }
+@media (max-width: 360px) {
+  .pg-home .nav-inner { gap: 6px; padding: 0 10px; }
+  .pg-home .nav-logo img { height: 32px; }
+  .pg-home .deliver-pill { padding: 9px 11px 9px 10px; font-size: .68rem; gap: 6px; letter-spacing: .2px; }
+  .pg-home .hamburger, .pg-home .acct-btn { width: 40px; height: 40px; }
+}
+@media (max-width: 560px) {
+  .pg-home .first-offer { display: flex; flex-wrap: wrap; justify-content: center; text-align: center; gap: 4px 6px; padding: 10px 14px; border-radius: 18px; }
+}
+@media (max-width: 768px) {
+  .pg-home .footer-col a, .pg-home .footer-legal a { display: inline-block; padding: 7px 0; }
+  .pg-home .footer-legal { line-height: 1.4; }
+  .pg-home .wa-x { width: 38px; height: 38px; }
+  .pg-home .fr2-seal { width: 150px; height: 150px; }
+  .pg-home .fr2-seal span { font-size: .64rem; }
+  .pg-home .fr2-seal small { font-size: .62rem; }
+}
+.pg-home .nf-hero { text-align: center; padding: 90px 0 100px; }
+.pg-home .nf-wrap { display: grid; justify-items: center; gap: 6px; }
+.pg-home .nf-code { font: 800 clamp(4.5rem, 16vw, 8rem)/1 'Playfair Display', serif; background: linear-gradient(100deg, #FF8A1F, #FFC48A, #FF8A1F); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.pg-home .nf-actions { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 22px; margin-top: 26px; }
+.pg-home .nf-link { font: 700 .95rem 'Poppins', sans-serif; color: #FFB067 !important; text-decoration: none; border-bottom: 2px solid rgba(255,176,103,.4); padding: 10px 2px; }
+
+/* notch / home-indicator safe areas for the floating buttons (viewport-fit=cover) */
+@media (max-width: 768px) {
+  .pg-home .wa-widget { right: calc(14px + env(safe-area-inset-right)); bottom: calc(16px + env(safe-area-inset-bottom)); }
+  .pg-home .scroll-top { right: calc(20px + env(safe-area-inset-right)); bottom: calc(74px + env(safe-area-inset-bottom)); }
+  .pg-home.order-page .wa-widget { bottom: calc(96px + env(safe-area-inset-bottom)) !important; }
+  .pg-home.order-page .scroll-top { bottom: calc(152px + env(safe-area-inset-bottom)) !important; }
+}
