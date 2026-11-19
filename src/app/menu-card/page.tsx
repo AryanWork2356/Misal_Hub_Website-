@@ -28,7 +28,7 @@ export default function MenuCardPage() {
           <p className="ph-sub">Swipe down to see everything. Pinch to zoom.</p>
           <div className="mc-actions">
             <Link href="/menu" className="btn btn-gold">Order online</Link>
-            <a href="/Misal-Hub-Menu.pdf" className="mc-pdf" download>Download PDF</a>
+            <a href="/Misal-Hub-Menu.pdf?v=2" className="mc-pdf" download>Download PDF</a>
           </div>
         </div>
       </section>
@@ -39,7 +39,7 @@ export default function MenuCardPage() {
             <img
               key={i}
               className="mc-page"
-              src={`/images/menucard/p${i + 1}.webp`}
+              src={`/images/menucard/p${i + 1}.webp?v=2`}
               alt={`Misal Hub menu, page ${i + 1} of ${PAGES}`}
               width={1200}
               height={1200}
